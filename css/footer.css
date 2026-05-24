@@ -1,0 +1,211 @@
+.footer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: sans-serif;
+  width: 100%;
+  height: 257px;
+  background-color: #f5e7b2;
+  padding: 22px 87px 22px 88px;
+}
+
+#satu {
+  color: #000000;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+#dua {
+  color: #625c48;
+  font-size: 13px;
+}
+
+.footer-atas {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #aa554b;
+  margin: 0 -89px 22px -87px;
+  padding: 22px 88px;
+}
+
+.logo_eventura {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.kanan-atas {
+  display: flex;
+  gap: 60px;
+  color: #312e24;
+  margin-bottom: 12px;
+}
+
+.kanan-atas ul {
+  list-style: none;
+}
+
+.navigasi {
+  width: 81px;
+}
+
+.navigasi li {
+  margin-bottom: 12px;
+}
+
+.kanan-satu {
+  color: #aa554b;
+  font-weight: bold;
+}
+
+.kanan-dua {
+  color: #973131;
+  font-weight: bold;
+}
+
+.contact li {
+  margin-bottom: 12px;
+}
+
+.footer-bawah {
+  display: flex;
+  justify-content: space-between;
+}
+
+.kiri-bawah {
+  display: flex;
+  gap: 24px;
+}
+
+.kanan-bawah {
+  color: #625c47;
+  font-family: sans-serif;
+  font-size: medium;
+  font-size: 14px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN - TABLET
+   ======================================== */
+@media screen and (max-width: 1200px) {
+  .footer {
+    padding: 20px 50px;
+    height: auto;
+    min-height: 257px;
+  }
+
+  .footer-atas {
+    margin: 0 -50px 20px -50px;
+    padding: 20px 50px;
+  }
+
+  #satu {
+    font-size: 18px;
+  }
+
+  #dua {
+    font-size: 9px;
+  }
+
+  .kanan-atas {
+    gap: 40px;
+  }
+
+  .kanan-bawah {
+    font-size: 13px;
+  }
+
+  .kiri-bawah img {
+    width: 22px;
+    height: auto;
+  }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN - MOBILE
+   ======================================== */
+@media screen and (max-width: 600px) {
+  .footer {
+    padding: 20px;
+    height: auto;
+    min-height: auto;
+  }
+
+  .footer-atas {
+    flex-direction: column;
+    gap: 25px;
+    margin: 0 -20px 20px -20px;
+    padding: 20px;
+  }
+
+  .kiri-atas {
+    width: 100%;
+  }
+
+  .logo_eventura {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .logo_eventura img {
+    width: 28px;
+    height: auto;
+  }
+
+  #satu {
+    font-size: 16px;
+  }
+
+  #dua {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .kanan-atas {
+    flex-direction: row;
+    gap: 40px;
+    margin-bottom: 0;
+  }
+
+  .navigasi {
+    width: auto;
+  }
+
+  .navigasi li,
+  .contact li {
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  .kanan-satu,
+  .kanan-dua {
+    font-size: 14px;
+  }
+
+  .footer-bawah {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .kiri-bawah {
+    gap: 20px;
+    justify-content: center;
+  }
+
+  .kiri-bawah img {
+    width: 24px;
+    height: auto;
+  }
+
+  .kanan-bawah {
+    font-size: 11px;
+  }
+}

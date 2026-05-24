@@ -1,0 +1,315 @@
+/* Reset default margin & padding */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  color: #000;
+}
+
+/* --- Layout utama --- */
+.container {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+/* Bagian kiri (gambar login) */
+.container-kiri {
+  flex: 0 0 759px;
+  margin: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.image-1 {
+  width: 100%;
+  height: auto;
+  max-height: 990px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Bagian kanan (form login) */
+.container-kanan {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 40px;
+  min-width: 320px;
+}
+
+.main-content {
+  position: relative;
+  width: 529px;
+  max-width: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 0;
+}
+
+/* Judul */
+.title {
+  font-size: 68px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #000;
+  line-height: 1;
+}
+
+/* --- Input Form --- */
+.form-group {
+  width: 100%;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 527px;
+  height: 57px;
+  border: 1px solid #000;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding-left: 70px;
+  margin-bottom: 20px;
+}
+
+.input-wrapper input {
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 200;
+  font-style: italic;
+  width: 100%;
+  background: transparent;
+  color: #000;
+  padding: 10px 16px;
+  line-height: 1;
+}
+
+.input-wrapper input::placeholder {
+  color: #000;
+  opacity: 0.5;
+}
+
+.icon {
+  position: absolute;
+  left: 30px;
+  font-size: 24px;
+  pointer-events: none;
+}
+
+/* --- Tombol login --- */
+.btn-login {
+  width: 400px;
+  max-width: 100%;
+  height: 60px;
+  background: #b31919;
+  border: none;
+  border-radius: 30px;
+  color: #f6f1f1;
+  font-family: "Montserrat", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  align-self: center;
+  transition: background 0.3s, color 0.3s;
+}
+
+.btn-login:hover {
+  background: #9a1515;
+  color: #fff;
+}
+
+/* --- Footer teks --- */
+.footer-text {
+  text-align: center;
+  font-family: "Montserrat", sans-serif;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.footer-text a {
+  color: #00d6c4;
+  font-style: italic;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* --- Divider --- */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0px 10px 0px;
+  width: 291px;
+  max-width: 100%;
+  align-self: center;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #000;
+}
+
+.divider-text {
+  font-size: 16px;
+  font-weight: 300;
+  color: #000;
+  padding: 0 8px;
+}
+
+/* --- Tombol Google --- */
+.btn-google {
+  width: 410px;
+  max-width: 100%;
+  height: 60px;
+  border: 1px solid #000;
+  border-radius: 25px;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  font-family: "Inter", sans-serif;
+  transition: background 0.3s;
+  align-self: center;
+  padding: 0 16px;
+}
+
+.btn-google:hover {
+  background: #f5f5f5;
+}
+
+.google-icon {
+  font-size: 20px;
+}
+
+/* --- Logo sosial media --- */
+.logo {
+  margin-top: 10px;
+  align-self: center;
+  width: 100%;
+}
+
+.logo ul {
+  display: flex;
+  list-style: none;
+  justify-content: center;
+  gap: 18px;
+  padding: 0;
+  margin: 0;
+}
+
+.logo img {
+  display: block;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+/* --- Responsive Tablet --- */
+@media (max-width: 1100px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .container-kiri {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 900px;
+    margin: 10px 0;
+  }
+
+  .container-kanan {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 0 20px;
+    max-width: 720px;
+  }
+
+  .title {
+    font-size: 48px;
+  }
+
+  /* Form-group di tablet ditaruh di tengah */
+  .form-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .input-wrapper {
+    margin: 0 auto;
+  }
+}
+
+/* --- Responsive Phone --- */
+@media (max-width: 480px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .container-kiri {
+    display: none;
+  }
+
+  .container-kanan {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 0 20px;
+    max-width: 480px;
+  }
+
+  .title {
+    font-size: 36px;
+  }
+
+  .input-wrapper {
+    height: 50px;
+    padding-left: 56px;
+  }
+
+  .btn-login,
+  .btn-google {
+    height: 54px;
+    font-size: 18px;
+  }
+
+  .logo img {
+    width: 28px;
+    height: 28px;
+  }
+}

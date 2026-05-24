@@ -1,0 +1,178 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* DOUBLE */
+.teks-h2 {
+  font-family: "Inter", sans-serif;
+  font-size: 22px;
+  margin-bottom: 28px;
+}
+
+/* Hero Section */
+.gambar-hero {
+  margin-top: 33px;
+  margin-left: 88px;
+  margin-right: 88px;
+  width: calc(100% - 176px);
+  height: auto;
+}
+
+/* Definisi Section */
+.teks-definisi {
+  margin-left: 88px;
+  margin-right: 88px;
+  margin-top: 22px;
+  font-family: sans-serif;
+  font-size: 16px;
+  color: #000000;
+  line-height: 1.5;
+}
+
+/* Filosofi Section */
+.filosofi-kami {
+  margin: 22px 88px;
+  font-family: sans-serif;
+  font-size: 16px;
+  color: #000000;
+  line-height: 1.5;
+}
+
+/* Proses Section */
+.proses-kami {
+  margin: 22px 88px;
+  font-family: sans-serif;
+  font-size: 16px;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.all-list {
+  display: flex;
+  gap: 20px;
+}
+
+ul {
+  list-style: none;
+}
+
+.list-teks ul li {
+  padding-bottom: 52.5px;
+}
+
+.one {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* ============================================ */
+/* TABLET RESPONSIVE (max-width: 1200px) */
+/* ============================================ */
+@media screen and (max-width: 1200px) {
+  /* Hero Section */
+  .gambar-hero {
+    margin-left: 60px;
+    margin-right: 60px;
+    width: calc(100% - 120px);
+  }
+
+  /* Definisi Section */
+  .teks-definisi {
+    margin-left: 60px;
+    margin-right: 60px;
+  }
+
+  /* Filosofi Section */
+  .filosofi-kami {
+    margin: 22px 60px;
+  }
+
+  /* Proses Section */
+  .proses-kami {
+    margin: 22px 60px;
+  }
+
+  .all-list {
+    gap: 15px;
+  }
+
+  .list-gambar ul li img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .list-teks ul li {
+    padding-bottom: 40px;
+  }
+}
+
+/* ============================================ */
+/* MOBILE RESPONSIVE (max-width: 600px) */
+/* ============================================ */
+@media screen and (max-width: 600px) {
+  /* Typography Adjustments */
+  .teks-h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* Hero Section */
+  .gambar-hero {
+    margin-top: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+    width: calc(100% - 40px);
+  }
+
+  /* Definisi Section */
+  .teks-definisi {
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 20px;
+    font-size: 14px;
+    text-align: justify;
+  }
+
+  .teks-definisi br {
+    display: none;
+  }
+
+  /* Filosofi Section */
+  .filosofi-kami {
+    margin: 20px 20px;
+    font-size: 14px;
+    text-align: justify;
+  }
+
+  .filosofi-kami br {
+    display: none;
+  }
+
+  /* Proses Section */
+  .proses-kami {
+    margin: 20px 20px;
+    font-size: 14px;
+  }
+
+  .all-list {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .list-gambar {
+    display: none;
+  }
+
+  .list-teks ul li {
+    padding-bottom: 30px;
+    text-align: justify;
+  }
+
+  .one {
+    font-size: 15px;
+    margin-bottom: 8px;
+    display: block;
+  }
+}

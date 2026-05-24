@@ -1,0 +1,11 @@
+@import url("../assets/css/components/admin-shared.css");
+
+.event-form-content {
+  max-width: 760px;
+}
+
+@media (max-width: 760px) {
+  .event-form-content {
+    max-width: none;
+  }
+}

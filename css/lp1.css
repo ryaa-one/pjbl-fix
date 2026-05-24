@@ -1,0 +1,227 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #ffffff;
+    font-family: 'Inter', sans-serif;
+    color: #000;
+}
+
+header {
+    background: #ffffff;
+    color: #000000;
+    padding: 0 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+}
+/* NAMA BRAND */
+.gambar-logo {
+    width: 28px;
+    height: 28px;
+}
+
+.EvenTura {
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-right: 900px;
+}
+
+/* NAVBAR */
+nav {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    font-size: 0.8rem;
+}
+
+nav ul {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+}
+
+nav ul li {
+    margin-bottom: 10px;
+    margin-top: 5px;
+    text-align: center;
+}
+
+nav ul li a {
+    color: black;
+    text-decoration: none;
+    transition: 0.3s;
+    padding: 2px;
+    text-align: center;
+}
+
+.user-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    min-height: calc(100vh - 72xpx);
+}
+
+.sidebar {
+    width: 250px;
+    padding: 20px;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    width: 165px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #353535;
+    margin-bottom: 9px;
+}
+.sidebar-item.active {
+    background-color: #ff8585;
+    color: #d41919;
+}
+
+.content {
+    flex: 1;
+    padding: 35px;
+}
+
+h1 {
+    font-size: 35px;
+    margin-bottom: 20px;
+}
+
+.jns-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 35px;
+}
+
+.jns-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.jns-icon {
+    width: 50px;
+    height: 50px;
+    background-color: white;
+    border-radius: 50%;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+}
+
+.jns-info {
+    flex: 1;
+}
+
+.jns-label {
+    color: #5a5a5a;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.jns-value {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.event-overview {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.event-overview h2 {
+    font-size: 22px;
+    margin-bottom: 30px;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.event-title h3 {
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: #484848;
+}
+
+.event-subtitle {
+    color: #6c6c6c;
+    font-size: 14px;
+}
+
+.event-stats {
+    text-align: center;
+}
+
+.event-value {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.event-change {
+    color: #10b981;
+    font-size: 14px;
+}
+
+.chart-container {
+    height: 300px;
+    padding: 20px 0 50px;
+    position: relative;
+    border-bottom: 2px solid #e5e7eb;
+    border-left: 2px solid #e5e7eb;
+}
+
+    .chart-grid {
+    width: 100%;
+    height: calc(100% - 50px);
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    position: relative;
+}
+
+.grid-line {
+    width: 100%;
+    height: 1px;
+    background-color: #f3f4f6;
+}
+
+.chart-minggu {
+    display: flex;
+    justify-content: space-around;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    font-size: 14px;
+    color: #666;
+}

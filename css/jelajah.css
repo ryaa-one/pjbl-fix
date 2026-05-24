@@ -1,0 +1,148 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  color: #000;
+}
+
+.hero {
+  background-image: url("TubabaArt");
+  height: 28vh;
+  margin: 0px 88px;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url("../assets/images/hero-event.svg") center/cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  padding: 0 10px;
+  border-radius: 12px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 47px 88px 31px 88px;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  padding: 10px 16px;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.filter-group {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: #f3f4f6;
+}
+
+.filter-btn.active {
+  background: #b31919;
+  color: #fff;
+  border-color: #b31919;
+}
+
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 79.33px;
+  row-gap: 67px;
+  margin: 0px 88px 91px 88px;
+}
+
+.event-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 368px;
+  height: 360px;
+}
+
+.event-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.event-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category {
+  background: rgba(179, 25, 25, 0.1);
+  color: #b31919;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  width: 63px;
+  height: 24px;
+  text-align: center;
+}
+
+.detail-link {
+  color: #b31919;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.event-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.event-info {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}

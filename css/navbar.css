@@ -1,0 +1,281 @@
+header {
+  background: #ffffff;
+  color: #000000;
+  padding: 20px 88px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+  font-family: "Montserrat", sans-serif;
+}
+
+.EvenTura {
+  font-size: 20px;
+  font-weight: bold;
+  padding-left: 8px;
+}
+
+/* ========================================
+   NAVIGATION - DESKTOP STYLES
+   ======================================== */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  justify-content: center;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  top: 0;
+}
+
+nav ul li {
+  margin-left: 20px;
+}
+
+nav ul li a {
+  color: #000000;
+  font-weight: 500;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+/* Underline untuk halaman aktif */
+.beranda {
+  text-decoration: underline;
+}
+
+/* ========================================
+   BUTTONS (Masuk & Daftar)
+   ======================================== */
+.button-navbar {
+  display: flex;
+  gap: 10px;
+}
+
+.masuk {
+  color: #ffffff;
+  background-color: #b31919;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.daftar {
+  color: #b31919;
+  background-color: #f6f1f1;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 7px;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  z-index: 9999;
+  gap: 5px;
+  padding: 5px;
+}
+
+.hamburger span {
+  width: 25px;
+  height: 3px;
+  background-color: #b31919;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+/* Animasi Hamburger menjadi X ketika active */
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(8px, 8px);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(7px, -7px);
+}
+
+/* ========================================
+   SHOW/HIDE ELEMENTS BERDASARKAN DEVICE
+   ======================================== */
+/* Menu "Profil" hanya tampil di mobile */
+.mobile-only {
+  display: none;
+}
+
+/* Logo profil hanya tampil di desktop/tablet */
+.desktop-only {
+  display: block;
+}
+
+/* ========================================
+   LOGO & CONTAINERS
+   ======================================== */
+.container-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.gambar-menu {
+  width: 24px;
+  height: 24px;
+}
+
+.nama-pengguna {
+  color: #000000;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN - TABLET (≤1200px)
+   ======================================== */
+@media screen and (max-width: 1200px) {
+  header {
+    padding: 20px 50px;
+  }
+
+  .EvenTura {
+    font-size: 18px;
+  }
+
+  nav ul li {
+    margin-left: 15px;
+  }
+
+  nav ul li a {
+    font-size: 14px;
+  }
+
+  .masuk,
+  .daftar {
+    padding: 7px 14px;
+    font-size: 14px;
+  }
+
+  .gambar-logo {
+    width: 35px;
+    height: auto;
+  }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN - MOBILE (≤600px)
+   ======================================== */
+@media screen and (max-width: 600px) {
+  header {
+    padding: 15px 20px;
+  }
+
+  .EvenTura {
+    font-size: 16px;
+    padding-left: 6px;
+  }
+
+  .gambar-logo {
+    width: 30px;
+    height: auto;
+  }
+
+  /* Tampilkan Hamburger Icon di Mobile */
+  .hamburger {
+    display: flex;
+  }
+
+  /* Hide Logo Profil Desktop, Show Menu Profil Mobile */
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  /* ========================================
+     MOBILE NAVIGATION - FULLSCREEN MENU
+     ======================================== */
+  nav {
+    display: none; /* Hidden secara default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #ffffff;
+    z-index: 9998;
+    padding: 80px 30px 30px 30px;
+    overflow-y: auto;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Tampilkan menu ketika class "active" ditambahkan */
+  nav.active {
+    display: flex;
+  }
+
+  /* Menu Items - Vertical Layout */
+  nav ul {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 0;
+    justify-content: flex-start;
+  }
+
+  nav ul li {
+    margin-left: 0;
+    width: 100%;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  nav ul li a {
+    display: block;
+    padding: 20px 0;
+    font-size: 16px;
+  }
+
+  /* Buttons - Full Width & Stacked */
+  nav .button-navbar {
+    width: 100%;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+  }
+
+  nav .button-navbar a {
+    width: 100%;
+  }
+
+  nav .masuk,
+  nav .daftar {
+    width: 100%;
+    padding: 15px;
+    font-size: 15px;
+    text-align: center;
+  }
+}

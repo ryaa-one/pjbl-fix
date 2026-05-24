@@ -1,0 +1,40 @@
+@import url("event.css");
+
+.add-event-button {
+  min-width: 128px;
+}
+
+.table-actions form {
+  display: inline-flex;
+}
+
+@media (max-width: 760px) {
+  .events-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .events-table {
+    min-width: 700px;
+  }
+
+  .add-event-button {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .events-table {
+    min-width: 640px;
+  }
+
+  .table-actions {
+    gap: 8px;
+  }
+}
+
+/* Override event.css table padding so user page columns align */
+.events-table td {
+  padding: 18px 80px;
+}
