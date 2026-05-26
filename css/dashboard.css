@@ -118,6 +118,13 @@
     linear-gradient(to bottom, transparent 24.8%, #edf0f5 25%, transparent 25.2%, transparent 49.8%, #edf0f5 50%, transparent 50.2%, transparent 74.8%, #edf0f5 75%, transparent 75.2%);
 }
 
+.chart-grid canvas {
+  position: absolute;
+  inset: 18px 20px 56px;
+  width: calc(100% - 40px) !important;
+  height: calc(100% - 74px) !important;
+}
+
 .chart-grid::before {
   content: "";
   position: absolute;

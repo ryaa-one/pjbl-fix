@@ -4,6 +4,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 include 'config/database.php';
+include_once 'includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $currentUserId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
@@ -49,6 +52,21 @@ if ($stmtEvent) {
 if (! $event) {
   header('Location: jelajah.php');
   exit();
+}
+
+if (! isset($_SESSION['event_views']) || ! is_array($_SESSION['event_views'])) {
+  $_SESSION['event_views'] = [];
+}
+
+if (! isset($_SESSION['event_views'][$eventId])) {
+  $_SESSION['event_views'][$eventId] = true;
+
+  $stmtIncrementView = mysqli_prepare($koneksi, "UPDATE events SET view_count = view_count + 1 WHERE id = ?");
+  if ($stmtIncrementView) {
+    mysqli_stmt_bind_param($stmtIncrementView, 'i', $eventId);
+    mysqli_stmt_execute($stmtIncrementView);
+    mysqli_stmt_close($stmtIncrementView);
+  }
 }
 
 $isFavorited = false;

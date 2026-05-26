@@ -3,8 +3,12 @@ $currentLevel = "admin";
 include '../../process/checkAuth.php';
 include '../../config/database.php';
 include '../../process/category.php';
+include_once '../../includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 $errors = [];
+$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $formData = [
     'title'           => '',
     'description'     => '',
@@ -159,10 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $koneksi,
             "
             INSERT INTO events (
-                title, description, category_id, city_id,
+                title, description, category_id, city_id, user_id,
                 start_date, end_date, location, thumnail, gallery_carousel
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         "
         );
@@ -170,11 +174,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmtCreateEvent) {
             mysqli_stmt_bind_param(
                 $stmtCreateEvent,
-                'ssiisssss',
+                'ssiiisssss',
                 $formData['title'],
                 $formData['description'],
                 $categoryId,
                 $cityId,
+                $currentAdminId,
                 $formData['start_date'],
                 $endDate,
                 $formData['location'],

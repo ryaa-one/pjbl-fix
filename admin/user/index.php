@@ -7,6 +7,13 @@ include '../../process/getUser.php';
 $statusMessage = "";
 $statusType = "success";
 
+function buildUserPaginationUrl(int $page): string
+{
+    $params = $_GET;
+    $params['page'] = $page;
+    return 'index.php?' . http_build_query($params);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user_id'])) {
     $deleteUserId = (int) $_POST['delete_user_id'];
 
@@ -119,7 +126,7 @@ if ($statusMessage === "" && isset($_GET['status'])) {
             </thead>
             <tbody>
               <?php if ($execUsers && mysqli_num_rows($execUsers) > 0): ?>
-                <?php $rowNumber = 1; ?>
+                <?php $rowNumber = (($currentPage - 1) * $perPage) + 1; ?>
                 <?php while ($user = mysqli_fetch_assoc($execUsers)): ?>
                   <tr>
                     <td class="events-table__muted col-number"><?= $rowNumber++ ?></td>
@@ -148,6 +155,16 @@ if ($statusMessage === "" && isset($_GET['status'])) {
             </tbody>
           </table>
         </div>
+
+        <?php if ($totalUserPages > 1): ?>
+          <nav class="admin-pagination" aria-label="Pagination user">
+            <a class="admin-pagination__link<?= $currentPage <= 1 ? ' is-disabled' : '' ?>" href="<?= $currentPage <= 1 ? '#' : htmlspecialchars(buildUserPaginationUrl($currentPage - 1)) ?>">Previous</a>
+            <?php for ($page = 1; $page <= $totalUserPages; $page++): ?>
+              <a class="admin-pagination__link<?= $page === $currentPage ? ' is-active' : '' ?>" href="<?= htmlspecialchars(buildUserPaginationUrl($page)) ?>"><?= $page ?></a>
+            <?php endfor; ?>
+            <a class="admin-pagination__link<?= $currentPage >= $totalUserPages ? ' is-disabled' : '' ?>" href="<?= $currentPage >= $totalUserPages ? '#' : htmlspecialchars(buildUserPaginationUrl($currentPage + 1)) ?>">Next</a>
+          </nav>
+        <?php endif; ?>
       </main>
     </div>
 

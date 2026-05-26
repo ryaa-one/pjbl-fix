@@ -1,3 +1,78 @@
+<?php
+include 'config/database.php';
+
+function formatPopularEventDateRange(?string $startDate, ?string $endDate): string
+{
+  if (empty($startDate)) {
+    return 'Tanggal belum tersedia';
+  }
+
+  if (!empty($endDate) && $endDate !== $startDate) {
+    return $startDate . ' - ' . $endDate;
+  }
+
+  return $startDate;
+}
+
+function buildIndexCategoryUrl(int $categoryId): string
+{
+  return 'jelajah.php?category=' . urlencode((string) $categoryId);
+}
+
+$indexCategories = [];
+$queryIndexCategories = "
+  SELECT
+    categories.id,
+    categories.name,
+    COUNT(events.id) AS total_events
+  FROM categories
+  INNER JOIN events ON events.category_id = categories.id
+  GROUP BY categories.id, categories.name
+  HAVING COUNT(events.id) > 0
+  ORDER BY categories.name ASC
+";
+
+$resultIndexCategories = mysqli_query($koneksi, $queryIndexCategories);
+if ($resultIndexCategories) {
+  while ($category = mysqli_fetch_assoc($resultIndexCategories)) {
+    $indexCategories[] = [
+      'id' => (int) $category['id'],
+      'name' => $category['name'],
+    ];
+  }
+}
+
+$popularEvents = [];
+$queryPopularEvents = "
+  SELECT
+    events.id,
+    events.title,
+    events.start_date,
+    events.end_date,
+    events.thumnail,
+    COALESCE(categories.name, 'Tanpa kategori') AS category_name,
+    COUNT(event_likes.id) AS total_likes
+  FROM events
+  LEFT JOIN categories ON events.category_id = categories.id
+  LEFT JOIN event_likes ON event_likes.event_id = events.id
+  GROUP BY
+    events.id,
+    events.title,
+    events.start_date,
+    events.end_date,
+    events.thumnail,
+    categories.name
+  ORDER BY total_likes DESC, events.id DESC
+  LIMIT 3
+";
+
+$resultPopularEvents = mysqli_query($koneksi, $queryPopularEvents);
+if ($resultPopularEvents) {
+  while ($event = mysqli_fetch_assoc($resultPopularEvents)) {
+    $popularEvents[] = $event;
+  }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -34,9 +109,13 @@
     <div class="kategori-event">
       <p>Kategori Event</p>
       <ul>
-        <li>BUDAYA</li>
-        <li>MUSIK</li>
-        <li>SENI</li>
+        <?php foreach ($indexCategories as $category): ?>
+          <li>
+            <a href="<?= htmlspecialchars(buildIndexCategoryUrl($category['id'])) ?>">
+              <?= htmlspecialchars(strtoupper($category['name'])) ?>
+            </a>
+          </li>
+        <?php endforeach; ?>
       </ul>
     </div>
 
@@ -126,46 +205,22 @@
       </div>
     </div>
 
-    <h2 class="eventakandatang">Event Yang Akan Datang</h2>
+    <h2 class="eventakandatang">Event Populer</h2>
     <div class="event-grid">
-      <div class="event-card">
-        <img
-          src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=800&fit=crop"
-          alt="Festival Teluk Tomini"
-          class="gambar"
-        />
-        <div class="event-overlay">
-          <span class="kategori">Budaya</span>
-          <h2>Festival Teluk Tomini</h2>
-          <div class="tanggal">20-22 November 2025</div>
+      <?php foreach ($popularEvents as $event): ?>
+        <div class="event-card">
+          <img
+            src="<?= htmlspecialchars(!empty($event['thumnail']) ? $event['thumnail'] : 'assets/images/gambar-tk1.png') ?>"
+            alt="<?= htmlspecialchars($event['title']) ?>"
+            class="gambar"
+          />
+          <div class="event-overlay">
+            <span class="kategori"><?= htmlspecialchars($event['category_name']) ?></span>
+            <h2><?= htmlspecialchars($event['title']) ?></h2>
+            <div class="tanggal"><?= htmlspecialchars(formatPopularEventDateRange($event['start_date'] ?? null, $event['end_date'] ?? null)) ?></div>
+          </div>
         </div>
-      </div>
-
-      <div class="event-card">
-        <img
-          src="https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=800&fit=crop"
-          alt="Ngayogjazz"
-          class="gambar"
-        />
-        <div class="event-overlay">
-          <span class="kategori">Musik</span>
-          <h2>Ngayogjazz</h2>
-          <div class="tanggal">15 November 2025</div>
-        </div>
-      </div>
-
-      <div class="event-card">
-        <img
-          src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=800&fit=crop"
-          alt="Festival Nusa Dua"
-          class="gambar"
-        />
-        <div class="event-overlay">
-          <span class="kategori">Seni</span>
-          <h2>Festival Nusa Dua</h2>
-          <div class="tanggal">25-26 Oktober 2025</div>
-        </div>
-      </div>
+      <?php endforeach; ?>
     </div>
 
     <?php include("templates/footer.php"); ?>

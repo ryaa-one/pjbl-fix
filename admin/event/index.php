@@ -8,6 +8,13 @@ include '../../process/getEvent.php';
 $statusMessage = "";
 $statusType = "success";
 
+function buildEventPaginationUrl(int $page): string
+{
+    $params = $_GET;
+    $params['page'] = $page;
+    return 'index.php?' . http_build_query($params);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event_id'])) {
 
     $deleteEventId = (int) $_POST['delete_event_id'];
@@ -156,7 +163,7 @@ if ($statusMessage === "" && isset($_GET['status'])) {
             <tbody>
 
               <?php if ($execEvents && mysqli_num_rows($execEvents) > 0): ?>
-                <?php $rowNumber = 1; ?>
+                <?php $rowNumber = (($currentPage - 1) * $perPage) + 1; ?>
 
                 <?php while ($event = mysqli_fetch_assoc($execEvents)): ?>
 
@@ -238,6 +245,16 @@ if ($statusMessage === "" && isset($_GET['status'])) {
           </table>
 
         </div>
+
+        <?php if ($totalEventPages > 1): ?>
+          <nav class="admin-pagination" aria-label="Pagination event">
+            <a class="admin-pagination__link<?= $currentPage <= 1 ? ' is-disabled' : '' ?>" href="<?= $currentPage <= 1 ? '#' : htmlspecialchars(buildEventPaginationUrl($currentPage - 1)) ?>">Previous</a>
+            <?php for ($page = 1; $page <= $totalEventPages; $page++): ?>
+              <a class="admin-pagination__link<?= $page === $currentPage ? ' is-active' : '' ?>" href="<?= htmlspecialchars(buildEventPaginationUrl($page)) ?>"><?= $page ?></a>
+            <?php endfor; ?>
+            <a class="admin-pagination__link<?= $currentPage >= $totalEventPages ? ' is-disabled' : '' ?>" href="<?= $currentPage >= $totalEventPages ? '#' : htmlspecialchars(buildEventPaginationUrl($currentPage + 1)) ?>">Next</a>
+          </nav>
+        <?php endif; ?>
 
       </main>
 

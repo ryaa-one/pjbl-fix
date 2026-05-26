@@ -38,6 +38,41 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.admin-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.admin-pagination__link {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #dbe1ea;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #344054;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-pagination__link.is-active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+}
+
+.admin-pagination__link.is-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .events-table {
   width: 100%;
   border-collapse: collapse;
