@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+include_once __DIR__ . '/../includes/profile_photo.php';
 $navActive = $navActive ?? "";
 
 $path_prefix = '';
@@ -57,7 +58,7 @@ if (strpos($_SERVER['PHP_SELF'], '/akun/') !== false) {
     <?php if (isset($_SESSION['user_id'])): ?>
         <a href="<?= $_SESSION['level'] === 'admin' ? $path_prefix . 'admin/dashboard' : $path_prefix . 'akun/eventfavorit.php' ?>" class="container-logo desktop-only">
             <span class="nama-pengguna"><?= htmlspecialchars($_SESSION['nama']) ?></span>
-            <img class="gambar-menu" src="<?= $path_prefix ?>assets/images/logo-profil.svg" alt="Profil" />
+            <img class="gambar-menu gambar-menu--avatar" src="<?= htmlspecialchars(getProfilePhotoUrl($_SESSION['profile_photo'] ?? '', $path_prefix)) ?>" alt="Profil" />
         </a>
     <?php endif; ?>
 </header>

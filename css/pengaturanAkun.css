@@ -26,6 +26,12 @@ a {
 .foto-profil {
   padding-top: 24px;
 }
+.foto-profil img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 .teks-profil {
   line-height: 1.5;
   padding-bottom: 24px;
@@ -85,7 +91,22 @@ a {
   margin-left: 100px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+}
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.alert-success {
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  color: #065f46;
+}
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  color: #991b1b;
 }
 .form-label {
   font-size: 14px;
@@ -102,6 +123,21 @@ a {
   border-radius: 8px;
   background: #fff;
   color: #1c1917;
+}
+.form-group {
+  margin-bottom: 15px;
+}
+.profile-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.profile-avatar-form {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e7e5e4;
 }
 .actions {
   display: flex;
@@ -167,6 +203,10 @@ a {
   .actions {
     flex-direction: column;
     gap: 12px;
+  }
+  .profile-upload-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
   .btn {
     width: 100%;

@@ -12,9 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event_id'])) {
 
     $deleteEventId = (int) $_POST['delete_event_id'];
 
-    $queryDeleteEvent = "DELETE FROM events WHERE id = $deleteEventId";
-
-    $execDeleteEvent = mysqli_query($koneksi, $queryDeleteEvent);
+    $stmtDeleteEvent = mysqli_prepare($koneksi, "DELETE FROM events WHERE id = ?");
+    if ($stmtDeleteEvent) {
+        mysqli_stmt_bind_param($stmtDeleteEvent, 'i', $deleteEventId);
+        $execDeleteEvent = mysqli_stmt_execute($stmtDeleteEvent);
+        mysqli_stmt_close($stmtDeleteEvent);
+    } else {
+        $execDeleteEvent = false;
+    }
 
     if ($execDeleteEvent) {
         header("Location: index.php?status=deleted");
@@ -89,27 +94,48 @@ if ($statusMessage === "" && isset($_GET['status'])) {
           </div>
         <?php endif; ?>
 
-        <form class="admin-search" method="get" action="">
+        <form class="admin-toolbar" method="get" action="">
+          <div class="admin-search">
+            <svg 
+              class="admin-search__icon" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-width="1.8" 
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m16 16 4 4"></path>
+            </svg>
 
-          <svg 
-            class="admin-search__icon" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            stroke-width="1.8" 
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7"></circle>
-            <path d="m16 16 4 4"></path>
-          </svg>
-
-          <input
-            class="admin-search__input"
-            type="search"
-            name="search"
-            placeholder="Search events"
-            value="<?= htmlspecialchars($search) ?>"
-          />
+            <input
+              class="admin-search__input"
+              type="search"
+              name="search"
+              placeholder="Search events"
+              value="<?= htmlspecialchars($search) ?>"
+            />
+          </div>
+          <select class="admin-field admin-toolbar__select" name="filter_category">
+            <option value="">Semua kategori</option>
+            <?php foreach ($eventCategoryOptions as $categoryId => $categoryName): ?>
+              <option value="<?= htmlspecialchars($categoryId) ?>" <?= $filterCategory === (string) $categoryId ? 'selected' : '' ?>>
+                <?= htmlspecialchars($categoryName) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <select class="admin-field admin-toolbar__select" name="sort">
+            <option value="id" <?= $sort === 'id' ? 'selected' : '' ?>>Urutkan: ID</option>
+            <option value="title" <?= $sort === 'title' ? 'selected' : '' ?>>Urutkan: Nama</option>
+            <option value="category" <?= $sort === 'category' ? 'selected' : '' ?>>Urutkan: Kategori</option>
+            <option value="date" <?= $sort === 'date' ? 'selected' : '' ?>>Urutkan: Tanggal</option>
+            <option value="location" <?= $sort === 'location' ? 'selected' : '' ?>>Urutkan: Lokasi</option>
+          </select>
+          <select class="admin-field admin-toolbar__select" name="direction">
+            <option value="asc" <?= $direction === 'asc' ? 'selected' : '' ?>>A-Z / Lama-Baru</option>
+            <option value="desc" <?= $direction === 'desc' ? 'selected' : '' ?>>Z-A / Baru-Lama</option>
+          </select>
+          <button class="admin-button admin-button--secondary admin-toolbar__button" type="submit">Terapkan</button>
         </form>
 
         <div class="events-table-wrap">
@@ -118,41 +144,44 @@ if ($statusMessage === "" && isset($_GET['status'])) {
 
             <thead>
               <tr>
-                <th>Event Name</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Location</th>
-                <th>Actions</th>
+                <th class="col-number">No</th>
+                <th class="col-title">Event Name</th>
+                <th class="col-category">Category</th>
+                <th class="col-date">Date</th>
+                <th class="col-location">Location</th>
+                <th class="col-actions">Actions</th>
               </tr>
             </thead>
 
             <tbody>
 
               <?php if ($execEvents && mysqli_num_rows($execEvents) > 0): ?>
+                <?php $rowNumber = 1; ?>
 
                 <?php while ($event = mysqli_fetch_assoc($execEvents)): ?>
 
                   <tr>
+                    <td class="events-table__muted col-number"><?= $rowNumber++ ?></td>
 
-                    <td>
+                    <td class="col-title">
                       <?= htmlspecialchars($event['title']) ?>
                     </td>
 
-                    <td>
+                    <td class="col-category">
                       <span class="category-badge">
-                        <?= htmlspecialchars($event['category']) ?>
+                        <?= htmlspecialchars($event['category'] ?? 'Tanpa kategori') ?>
                       </span>
                     </td>
 
-                    <td class="events-table__muted">
+                    <td class="events-table__muted col-date">
                       <?= htmlspecialchars(date('Y-m-d', strtotime($event['start_date']))) ?>
                     </td>
 
-                    <td class="events-table__muted">
+                    <td class="events-table__muted col-location">
                       <?= htmlspecialchars($event['location']) ?>
                     </td>
 
-                    <td>
+                    <td class="col-actions">
 
                       <div class="table-actions">
 
@@ -197,7 +226,7 @@ if ($statusMessage === "" && isset($_GET['status'])) {
               <?php else: ?>
 
                 <tr>
-                  <td class="empty-state" colspan="5">
+                  <td class="empty-state" colspan="6">
                     Belum ada data event yang cocok.
                   </td>
                 </tr>

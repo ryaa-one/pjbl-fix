@@ -23,10 +23,6 @@ header {
   z-index: 9999;
   font-family: "Montserrat", sans-serif;
 }
-.gambar-logo {
-  width: 40px;
-  height: auto;
-}
 .EvenTura {
   font-size: 20px;
   font-weight: bold;
@@ -144,6 +140,10 @@ nav ul li a {
   flex-direction: column;
   gap: 30px;
 }
+.container--full {
+  margin-left: 0;
+  width: 100%;
+}
 .navigation {
   display: flex;
   border-bottom: 1px solid #e7e5e4;
@@ -218,6 +218,37 @@ nav ul li a {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.auth-card,
+.empty-card {
+  border: 1px solid #ece1d9;
+  border-radius: 18px;
+  background: #fffdfb;
+  padding: 22px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+.auth-card__text,
+.empty-card {
+  color: #4c3c33;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.auth-card__button {
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: #b73a35;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 .icon {
   width: 24px;
@@ -294,6 +325,11 @@ nav ul li a {
     width: 100%;
     gap: 20px;
     margin-left: 0;
+  }
+  .auth-card,
+  .empty-card {
+    flex-direction: column;
+    align-items: stretch;
   }
   .navigation {
     flex-direction: row;

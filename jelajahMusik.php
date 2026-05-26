@@ -1,79 +1,13 @@
-﻿<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EvenTura</title>
-    <link rel="stylesheet" type="text/css" href="css/jelajah.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  </head>
+<?php
+include 'config/database.php';
+include 'process/category.php';
 
-  <?php
-    $navMode = "profile";
-    $navActive = "event";
-    include 'templates/navbar.php';
-  ?>
+$categoryId = findCategoryIdByName($koneksi, 'Musik');
+$redirectUrl = 'jelajah.php';
 
-    <section class="hero">
-      <h2>Jelajahi Keindahan Nusantara Melalui Event Daerah</h2>
-      <p>Temukan berbagai event daerah dari kategori budaya hingga seni yang memukau di Nusantara</p>
-    </section>
+if ($categoryId !== null) {
+    $redirectUrl .= '?category=' . urlencode((string) $categoryId);
+}
 
-    <div class="header">
-      <div class="search-bar">
-        <input type="text" placeholder="Cari event..." />
-      </div>
-      <div class="filter-group">
-        <a href="jelajah.php"><button class="filter-btn">Semua</button></a>
-        <a href="jelajahBudaya.php"><button class="filter-btn">Budaya</button></a>
-        <a href="jelajahMusik.php"><button class="filter-btn active">Musik</button></a>
-        <a href="jelajahSeni.php"><button class="filter-btn">Seni</button></a>
-      </div>
-    </div>
-
-    <div class="event-grid">
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/sawahlunto1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Sawahlunto International Music</h3>
-          <p class="event-info">10 Oktober 2025 - Sumatera Barat</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/soloKroncong.png" />
-        <div class="event-content">
-          <h3 class="event-title">Solo Keroncong Festival</h3>
-          <p class="event-info">25 Juli 2025 - Solo</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/musiktong1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Festival Musik Tong-Tong</h3>
-          <p class="event-info">18 Oktober 2025 - Sumenep</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-    </div>
-
-    <?php include("templates/footer.php"); ?>
-  </body>
-</html>
+header('Location: ' . $redirectUrl);
+exit();

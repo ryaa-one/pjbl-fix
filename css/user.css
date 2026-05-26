@@ -4,37 +4,22 @@
   min-width: 128px;
 }
 
+.admin-toolbar {
+  grid-template-columns: minmax(240px, 1.8fr) repeat(3, minmax(0, 1fr)) auto;
+}
+
 .table-actions form {
   display: inline-flex;
 }
 
-@media (max-width: 760px) {
-  .events-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .events-table {
-    min-width: 700px;
-  }
-
-  .add-event-button {
-    min-width: 0;
-    width: 100%;
-  }
+.col-email {
+  width: 28%;
 }
 
-@media (max-width: 600px) {
-  .events-table {
-    min-width: 640px;
-  }
-
-  .table-actions {
-    gap: 8px;
-  }
+.col-level {
+  width: 14%;
 }
 
-/* Override event.css table padding so user page columns align */
-.events-table td {
-  padding: 18px 80px;
+.col-user-id {
+  width: 12%;
 }

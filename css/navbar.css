@@ -144,6 +144,11 @@ nav ul li a {
   height: 24px;
 }
 
+.gambar-menu--avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .nama-pengguna {
   color: #000000;
   font-weight: 500;

@@ -2,6 +2,7 @@
 $currentLevel = "admin";
 include '../../process/checkAuth.php';
 include '../../config/database.php';
+include '../../process/category.php';
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $errors = [];
@@ -13,59 +14,69 @@ if ($eventId <= 0) {
 
 $queryEvent = "
     SELECT
-        id,
-        title,
-        description,
-        category_id,
-        city_id,
-        start_date,
-        end_date,
-        location,
-        thumnail
+        events.id,
+        events.title,
+        events.description,
+        events.category_id,
+        categories.name AS category_name,
+        events.city_id,
+        events.start_date,
+        events.end_date,
+        events.location,
+        events.thumnail,
+        events.gallery_carousel
     FROM events
-    WHERE id = $eventId
+    LEFT JOIN categories ON events.category_id = categories.id
+    WHERE events.id = ?
+    LIMIT 1
 ";
 
-$execEvent = mysqli_query($koneksi, $queryEvent);
-$event = $execEvent ? mysqli_fetch_assoc($execEvent) : null;
+$stmtEvent = mysqli_prepare($koneksi, $queryEvent);
+if ($stmtEvent) {
+    mysqli_stmt_bind_param($stmtEvent, 'i', $eventId);
+    mysqli_stmt_execute($stmtEvent);
+    $execEvent = mysqli_stmt_get_result($stmtEvent);
+    $event = $execEvent ? mysqli_fetch_assoc($execEvent) : null;
+    mysqli_stmt_close($stmtEvent);
+} else {
+    $event = null;
+}
 
 if (! $event) {
     header("Location: index.php");
     exit();
 }
 
-$categories = [];
-$cities = [];
-
-$execCategories = mysqli_query($koneksi, "SELECT id, name FROM categories ORDER BY name ASC");
-if ($execCategories) {
-    while ($category = mysqli_fetch_assoc($execCategories)) {
-        $categories[] = $category;
-    }
-}
-
+// city_id diambil langsung dari tabel cities
+$provinceOptions = [];
 $execCities = mysqli_query($koneksi, "SELECT id, name FROM cities ORDER BY name ASC");
 if ($execCities) {
     while ($city = mysqli_fetch_assoc($execCities)) {
-        $cities[] = $city;
+        $provinceOptions[(int) $city['id']] = $city['name'];
     }
+}
+// Fallback jika tabel cities kosong
+if (empty($provinceOptions)) {
+    $provinceOptions = [1 => 'Jawa', 2 => 'Kalimantan', 3 => 'Sumatera'];
 }
 
 $formData = [
     'title' => $event['title'],
     'description' => $event['description'],
-    'category_id' => (string) $event['category_id'],
-    'city_id' => (string) $event['city_id'],
+    'category_name' => $event['category_name'] ?? '',
+    'city_id' => (int) ($event['city_id'] ?? 0),
     'start_date' => $event['start_date'],
     'end_date' => $event['end_date'],
     'location' => $event['location'],
     'thumnail' => $event['thumnail'],
+    'gallery_carousel' => $event['gallery_carousel'] ?? '[]',
 ];
+
 
 $uploadDir = '../../assets/uploads/events/';
 $uploadUrlBase = 'assets/uploads/events/';
 
-function uploadEventThumbnail(array $file, string $uploadDir, string $uploadUrlBase): ?string
+function uploadEventImage(array $file, string $uploadDir, string $uploadUrlBase): ?string
 {
     if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
         return null;
@@ -97,15 +108,43 @@ function uploadEventThumbnail(array $file, string $uploadDir, string $uploadUrlB
     return $uploadUrlBase . $fileName;
 }
 
+function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBase): array
+{
+    $uploaded = [];
+    $names = $files['name'] ?? [];
+    $tmpNames = $files['tmp_name'] ?? [];
+    $errors = $files['error'] ?? [];
+
+    if (!is_array($names)) {
+        return $uploaded;
+    }
+
+    foreach ($names as $index => $name) {
+        $file = [
+            'name' => $name,
+            'tmp_name' => $tmpNames[$index] ?? '',
+            'error' => $errors[$index] ?? UPLOAD_ERR_NO_FILE,
+        ];
+
+        $uploadedPath = uploadEventImage($file, $uploadDir, $uploadUrlBase);
+        if ($uploadedPath !== null) {
+            $uploaded[] = $uploadedPath;
+        }
+    }
+
+    return $uploaded;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['title'] = trim($_POST['title'] ?? '');
     $formData['description'] = trim($_POST['description'] ?? '');
-    $formData['category_id'] = (string) (int) ($_POST['category_id'] ?? 0);
-    $formData['city_id'] = (string) (int) ($_POST['city_id'] ?? 0);
+    $formData['category_name'] = normalizeCategoryName($_POST['category_name'] ?? '');
+    $formData['city_id'] = (int) ($_POST['city_id'] ?? 0);
     $formData['start_date'] = trim($_POST['start_date'] ?? '');
     $formData['end_date'] = trim($_POST['end_date'] ?? '');
     $formData['location'] = trim($_POST['location'] ?? '');
     $formData['thumnail'] = trim($_POST['thumnail'] ?? '');
+    $formData['gallery_carousel'] = trim($_POST['gallery_carousel'] ?? '[]');
 
     if ($formData['title'] === '') {
         $errors[] = "Nama event wajib diisi.";
@@ -115,12 +154,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Deskripsi event wajib diisi.";
     }
 
-    if ((int) $formData['category_id'] <= 0) {
-        $errors[] = "Kategori event wajib dipilih.";
+    if ($formData['category_name'] === '') {
+        $errors[] = "Kategori event wajib diisi.";
     }
 
-    if ((int) $formData['city_id'] <= 0) {
-        $errors[] = "Kota event wajib dipilih.";
+    if ($formData['city_id'] === 0 || !isset($provinceOptions[$formData['city_id']])) {
+        $errors[] = "Kota/Kabupaten event wajib dipilih.";
     }
 
     if ($formData['start_date'] === '') {
@@ -136,40 +175,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $uploadedThumbnail = uploadEventThumbnail($_FILES['thumnail_file'] ?? [], $uploadDir, $uploadUrlBase);
+        $uploadedImages = uploadEventImages($_FILES['event_images'] ?? [], $uploadDir, $uploadUrlBase);
+        $submittedGallery = json_decode($formData['gallery_carousel'], true);
+        if (!is_array($submittedGallery)) {
+            $submittedGallery = [];
+        }
 
-        if ($uploadedThumbnail !== null) {
-            $formData['thumnail'] = $uploadedThumbnail;
+        $finalImages = array_values(array_filter(array_merge($uploadedImages, $submittedGallery), fn($item) => is_string($item) && trim($item) !== ''));
+
+        if (!empty($finalImages)) {
+            $formData['thumnail'] = $finalImages[0];
+            $formData['gallery_carousel'] = json_encode($finalImages, JSON_UNESCAPED_SLASHES);
         } elseif ($formData['thumnail'] === '') {
             $errors[] = "Thumbnail event wajib diupload atau diisi path/URL.";
         }
     }
 
     if (empty($errors)) {
-        $titleEscaped = mysqli_real_escape_string($koneksi, $formData['title']);
-        $descriptionEscaped = mysqli_real_escape_string($koneksi, $formData['description']);
-        $locationEscaped = mysqli_real_escape_string($koneksi, $formData['location']);
-        $thumnailEscaped = mysqli_real_escape_string($koneksi, $formData['thumnail']);
-        $startDateEscaped = mysqli_real_escape_string($koneksi, $formData['start_date']);
-        $endDateEscaped = $formData['end_date'] !== '' ? "'" . mysqli_real_escape_string($koneksi, $formData['end_date']) . "'" : "NULL";
-        $categoryId = (int) $formData['category_id'];
-        $cityId = (int) $formData['city_id'];
+        $categoryId = getOrCreateCategoryId($koneksi, $formData['category_name']);
+        if ($categoryId === null) {
+            $errors[] = "Kategori event gagal disimpan.";
+        }
+    }
 
-        $queryUpdateEvent = "
+    if (empty($errors)) {
+        $cityId = $formData['city_id'];
+        $endDate = $formData['end_date'] !== '' ? $formData['end_date'] : null;
+
+        $stmtUpdateEvent = mysqli_prepare(
+            $koneksi,
+            "
             UPDATE events
             SET
-                title = '$titleEscaped',
-                description = '$descriptionEscaped',
-                category_id = $categoryId,
-                city_id = $cityId,
-                start_date = '$startDateEscaped',
-                end_date = $endDateEscaped,
-                location = '$locationEscaped',
-                thumnail = '$thumnailEscaped'
-            WHERE id = $eventId
-        ";
+                title = ?,
+                description = ?,
+                category_id = ?,
+                city_id = ?,
+                start_date = ?,
+                end_date = ?,
+                location = ?,
+                thumnail = ?,
+                gallery_carousel = ?
+            WHERE id = ?
+        "
+        );
 
-        $execUpdateEvent = mysqli_query($koneksi, $queryUpdateEvent);
+        if ($stmtUpdateEvent) {
+            mysqli_stmt_bind_param(
+                $stmtUpdateEvent,
+                'ssiisssssi',
+                $formData['title'],
+                $formData['description'],
+                $categoryId,
+                $cityId,
+                $formData['start_date'],
+                $endDate,
+                $formData['location'],
+                $formData['thumnail'],
+                $formData['gallery_carousel'],
+                $eventId
+            );
+
+            $execUpdateEvent = mysqli_stmt_execute($stmtUpdateEvent);
+            mysqli_stmt_close($stmtUpdateEvent);
+        } else {
+            $execUpdateEvent = false;
+        }
 
         if ($execUpdateEvent) {
             header("Location: index.php?status=updated");
@@ -232,23 +303,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
           <div class="admin-form__row">
             <div>
-              <label class="admin-label" for="category_id">Category</label>
-              <select class="admin-field" id="category_id" name="category_id">
-                <option value="">Pilih kategori</option>
-                <?php foreach ($categories as $category): ?>
-                  <option value="<?= htmlspecialchars($category['id']) ?>" <?= $formData['category_id'] === (string) $category['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($category['name']) ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
+              <label class="admin-label" for="category_name">Category</label>
+              <input
+                class="admin-field"
+                id="category_name"
+                name="category_name"
+                type="text"
+                value="<?= htmlspecialchars($formData['category_name']) ?>"
+                placeholder="Budaya"
+              />
             </div>
             <div>
-              <label class="admin-label" for="city_id">City</label>
+              <label class="admin-label" for="city_id">Kota / Kabupaten</label>
               <select class="admin-field" id="city_id" name="city_id">
-                <option value="">Pilih kota</option>
-                <?php foreach ($cities as $city): ?>
-                  <option value="<?= htmlspecialchars($city['id']) ?>" <?= $formData['city_id'] === (string) $city['id'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($city['name']) ?>
+                <option value="">Pilih kota/kabupaten</option>
+                <?php foreach ($provinceOptions as $id => $label): ?>
+                  <option value="<?= $id ?>" <?= $formData['city_id'] === $id ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($label) ?>
                   </option>
                 <?php endforeach; ?>
               </select>
@@ -271,7 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="admin-form__group">
             <label class="admin-label" for="thumnail_file">Event Image</label>
             <div class="admin-upload">
-              <div class="admin-upload__preview">
+                <div class="admin-upload__preview">
                 <div class="admin-upload__preview-thumb">
                   <?php if ($formData['thumnail'] !== ''): ?>
                     <img src="<?= htmlspecialchars($formData['thumnail']) ?>" alt="Preview thumbnail event" id="thumbnail-preview">
@@ -291,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <div class="admin-upload__title" id="thumbnail-file-name">
                     <?= $formData['thumnail'] !== '' ? htmlspecialchars(basename($formData['thumnail'])) : 'Belum ada gambar dipilih' ?>
                   </div>
-                  <div class="admin-upload__text">Upload gambar baru jika ingin mengganti thumbnail event ini. Gambar lama tetap dipakai bila tidak ada file baru.</div>
+                  <div class="admin-upload__text">Upload banyak gambar sekaligus. File pertama otomatis menjadi thumbnail utama.</div>
                 </div>
               </div>
               <div class="admin-upload__controls">
@@ -303,14 +374,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   </svg>
                   Pilih gambar baru
                 </label>
-                <input class="admin-upload__input" id="thumnail_file" name="thumnail_file" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" />
+                <input class="admin-upload__input" id="thumnail_file" name="event_images[]" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" multiple />
                 <input type="hidden" name="thumnail" value="<?= htmlspecialchars($formData['thumnail']) ?>" />
+                <input type="hidden" name="gallery_carousel" value="<?= htmlspecialchars($formData['gallery_carousel']) ?>" />
                 <div class="admin-upload__file" id="thumbnail-file-label">
                   <?= $formData['thumnail'] !== '' ? htmlspecialchars($formData['thumnail']) : 'Format yang didukung: JPG, PNG, GIF, WEBP.' ?>
                 </div>
-                <div class="admin-upload__hint">Jika upload gambar baru, thumbnail lama akan diganti.</div>
+                <div class="admin-upload__hint">Gambar pertama jadi thumbnail, seluruh gambar disimpan ke gallery carousel.</div>
               </div>
             </div>
+            <div class="admin-upload__hint" id="selected-count">Belum ada file dipilih.</div>
           </div>
           <div class="admin-form__actions">
             <a class="admin-button admin-button--secondary" href="index.php">Cancel</a>
@@ -326,17 +399,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       const thumbnailPlaceholder = document.getElementById('thumbnail-placeholder');
       const thumbnailFileName = document.getElementById('thumbnail-file-name');
       const thumbnailFileLabel = document.getElementById('thumbnail-file-label');
+      const selectedCount = document.getElementById('selected-count');
 
       if (thumbnailInput) {
         thumbnailInput.addEventListener('change', function () {
-          const file = this.files && this.files[0];
-
-          if (!file) {
+          const files = this.files ? Array.from(this.files) : [];
+          if (files.length === 0) {
             return;
           }
 
-          thumbnailFileName.textContent = file.name;
-          thumbnailFileLabel.textContent = file.name;
+          thumbnailFileName.textContent = files[0].name;
+          thumbnailFileLabel.textContent = files.map((file) => file.name).join(', ');
+          if (selectedCount) {
+            selectedCount.textContent = `${files.length} file dipilih.`;
+          }
 
           const reader = new FileReader();
           reader.onload = function (event) {
@@ -350,7 +426,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
           };
 
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(files[0]);
         });
       }
     </script>

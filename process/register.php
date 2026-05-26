@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+include_once '../includes/profile_photo.php';
 
 if(isset($_POST['submit-register'])) {
 
@@ -50,10 +51,7 @@ function createUser($email, $password, $nama)
         $user = mysqli_fetch_assoc($execGetUser);
 
         // masukkan data user ke session
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['email'] = $user['email'];
-        $_SESSION['nama'] = $user['name'];
-        $_SESSION['level'] = $user['level'];
+        syncUserSession($user);
         header("Location: ../EvenTura.php");
     } else {
         echo "Data gagal ditambahkan";

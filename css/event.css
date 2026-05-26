@@ -4,20 +4,46 @@
   margin-bottom: 26px;
 }
 
+.admin-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.8fr) repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 26px;
+}
+
+.admin-toolbar .admin-search {
+  margin-bottom: 0;
+}
+
+.admin-toolbar__select,
+.admin-toolbar__button {
+  min-height: 44px;
+}
+
+.admin-toolbar__button {
+  padding: 0 18px;
+}
+
 .add-event-button {
   min-width: 132px;
 }
 
 .events-table-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-radius: 16px;
   background: #ffffff;
+  border: 1px solid #eceef3;
+  -webkit-overflow-scrolling: touch;
 }
 
 .events-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
+  min-width: 860px;
 }
 
 .events-table thead {
@@ -25,7 +51,8 @@
 }
 
 .events-table th {
-  padding: 13px 0px;
+  padding: 14px 16px;
+  text-align: left;
   color: #6b7280;
   font-size: 12px;
   font-weight: 700;
@@ -33,10 +60,11 @@
 }
 
 .events-table td {
-  padding: 18px 18px 18px 50px;
+  padding: 16px;
   border-bottom: 1px solid #eceef3;
   color: #333b4d;
   vertical-align: middle;
+  word-break: break-word;
 }
 
 .events-table tbody tr:last-child td {
@@ -75,6 +103,7 @@
   align-items: center;
   gap: 10px;
   white-space: nowrap;
+  flex-wrap: wrap;
 }
 
 .table-action {
@@ -100,14 +129,38 @@
   color: #98a2b3;
 }
 
+.col-number {
+  width: 64px;
+  text-align: center;
+}
+
+.col-title {
+  width: 24%;
+}
+
+.col-category {
+  width: 16%;
+}
+
+.col-date {
+  width: 14%;
+}
+
+.col-location {
+  width: 26%;
+}
+
+.col-actions {
+  width: 180px;
+}
+
 @media (max-width: 760px) {
-  .events-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .admin-toolbar {
+    grid-template-columns: 1fr;
   }
 
   .events-table {
-    min-width: 700px;
+    min-width: 760px;
   }
 
   .add-event-button {
@@ -118,7 +171,7 @@
 
 @media (max-width: 600px) {
   .events-table {
-    min-width: 640px;
+    min-width: 700px;
   }
 
   .table-actions {

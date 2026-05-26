@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+include_once '../includes/profile_photo.php';
 
 if (isset($_POST['submit-login'])) {
     $email = $_POST['email'];
@@ -47,8 +48,5 @@ function checkPassword($passwordInput, $passwordUser)
 
 function saveUserToSession($user)
 {
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['email'] = $user['email'];
-    $_SESSION['nama'] = $user['name'];
-    $_SESSION['level'] = $user['level'];
+    syncUserSession($user);
 }

@@ -1,5 +1,135 @@
-﻿<!DOCTYPE html>
-<html>
+<?php
+include 'config/database.php';
+
+$activeCategoryId = isset($_GET['category']) ? (int) $_GET['category'] : 0;
+$search = trim($_GET['search'] ?? '');
+
+function formatEventDateRange(?string $startDate, ?string $endDate): string
+{
+    if (empty($startDate)) {
+        return 'Tanggal belum tersedia';
+    }
+
+    if (!empty($endDate) && $endDate !== $startDate) {
+        return $startDate . ' - ' . $endDate;
+    }
+
+    return $startDate;
+}
+
+function buildJelajahUrl(int $categoryId = 0, string $search = ''): string
+{
+    $params = [];
+
+    if ($categoryId > 0) {
+        $params['category'] = $categoryId;
+    }
+
+    if ($search !== '') {
+        $params['search'] = $search;
+    }
+
+    if (empty($params)) {
+        return 'jelajah.php';
+    }
+
+    return 'jelajah.php?' . http_build_query($params);
+}
+
+$categories = [];
+$resultCategories = mysqli_query(
+    $koneksi,
+    "
+    SELECT categories.id, categories.name, COUNT(events.id) AS total_events
+    FROM categories
+    INNER JOIN events ON events.category_id = categories.id
+    GROUP BY categories.id, categories.name
+    HAVING COUNT(events.id) > 0
+    ORDER BY categories.name ASC
+    "
+);
+if ($resultCategories) {
+    while ($category = mysqli_fetch_assoc($resultCategories)) {
+        $categories[] = [
+            'id' => (int) $category['id'],
+            'name' => $category['name'],
+        ];
+    }
+}
+
+$queryEvents = "
+    SELECT
+        events.id,
+        events.title,
+        events.start_date,
+        events.end_date,
+        events.location,
+        events.thumnail,
+        COALESCE(categories.id, 0) AS category_id,
+        COALESCE(categories.name, 'Tanpa kategori') AS category_name,
+        COALESCE(cities.name, '-') AS city_name
+    FROM events
+    LEFT JOIN categories ON events.category_id = categories.id
+    LEFT JOIN cities ON events.city_id = cities.id
+";
+
+$conditions = [];
+$bindTypes = '';
+$bindValues = [];
+
+if ($activeCategoryId > 0) {
+    $conditions[] = "events.category_id = ?";
+    $bindTypes .= 'i';
+    $bindValues[] = $activeCategoryId;
+}
+
+if ($search !== '') {
+    $conditions[] = "(
+        LOWER(events.title) LIKE LOWER(?)
+        OR LOWER(COALESCE(categories.name, '')) LIKE LOWER(?)
+        OR LOWER(COALESCE(cities.name, '')) LIKE LOWER(?)
+        OR LOWER(events.location) LIKE LOWER(?)
+    )";
+    $searchLike = '%' . $search . '%';
+    $bindTypes .= 'ssss';
+    $bindValues[] = $searchLike;
+    $bindValues[] = $searchLike;
+    $bindValues[] = $searchLike;
+    $bindValues[] = $searchLike;
+}
+
+if (!empty($conditions)) {
+    $queryEvents .= ' WHERE ' . implode(' AND ', $conditions);
+}
+
+$queryEvents .= " ORDER BY events.start_date ASC, events.id DESC";
+
+if (!empty($bindValues)) {
+    $stmtEvents = mysqli_prepare($koneksi, $queryEvents);
+    if ($stmtEvents) {
+        mysqli_stmt_bind_param($stmtEvents, $bindTypes, ...$bindValues);
+        mysqli_stmt_execute($stmtEvents);
+        $resultEvents = mysqli_stmt_get_result($stmtEvents);
+    } else {
+        $resultEvents = false;
+    }
+} else {
+    $resultEvents = mysqli_query($koneksi, $queryEvents);
+}
+
+$events = [];
+if ($resultEvents) {
+    while ($event = mysqli_fetch_assoc($resultEvents)) {
+        $events[] = $event;
+    }
+}
+
+if (isset($stmtEvents) && $stmtEvents) {
+    mysqli_stmt_close($stmtEvents);
+}
+?>
+<!DOCTYPE html>
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,12 +139,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   </head>
-
-  <?php
-    $navMode = "profile";
-    $navActive = "event";
-    include 'templates/navbar.php';
-  ?>
+  <body>
+    <?php
+      $navMode = "profile";
+      $navActive = "event";
+      include 'templates/navbar.php';
+    ?>
 
     <section class="hero">
       <h2>Jelajahi Keindahan Nusantara Melalui Event Daerah</h2>
@@ -22,135 +152,65 @@
     </section>
 
     <div class="header">
-      <div class="search-bar">
-        <input type="text" placeholder="Cari event..." />
-      </div>
+      <form class="search-bar" method="get" action="jelajah.php">
+        <?php if ($activeCategoryId > 0): ?>
+          <input type="hidden" name="category" value="<?= htmlspecialchars((string) $activeCategoryId) ?>" />
+        <?php endif; ?>
+        <input
+          type="search"
+          name="search"
+          value="<?= htmlspecialchars($search) ?>"
+          placeholder="Cari event, kategori, kota, atau lokasi..."
+        />
+        <button class="search-button" type="submit">Cari</button>
+      </form>
       <div class="filter-group">
-        <a href="jelajah.php"><button class="filter-btn active">Semua</button></a>
-        <a href="jelajahBudaya.php"><button class="filter-btn">Budaya</button></a>
-        <a href="jelajahMusik.php"><button class="filter-btn">Musik</button></a>
-        <a href="jelajahSeni.php"><button class="filter-btn">Seni</button></a>
+        <a href="<?= htmlspecialchars(buildJelajahUrl(0, $search)) ?>" class="filter-btn<?= $activeCategoryId === 0 ? ' active' : '' ?>">Semua</a>
+        <?php foreach ($categories as $category): ?>
+          <a
+            href="<?= htmlspecialchars(buildJelajahUrl($category['id'], $search)) ?>"
+            class="filter-btn<?= $activeCategoryId === $category['id'] ? ' active' : '' ?>"
+          >
+            <?= htmlspecialchars($category['name']) ?>
+          </a>
+        <?php endforeach; ?>
       </div>
     </div>
 
-    <a href="detailEvent.php">
-    <div class="event-grid">
-      <div class="event-card">
-        <img src="assets/images/tk1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Tari Kecak</h3>
-          <p class="event-info">Setiap hari, 18:00-20:00 - Bali</p>
-          <div class="event-header">
-            <span class="category">Budaya</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
+    <div class="search-meta">
+      <?= count($events) ?> event<?= count($events) !== 1 ? 's' : '' ?> ditemukan
+      <?php if ($search !== ''): ?>
+        untuk kata kunci "<?= htmlspecialchars($search) ?>"
+      <?php endif; ?>
+    </div>
 
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/gandrungSewu.jpeg" />
-        <div class="event-content">
-          <h3 class="event-title">Gandrung Sewu</h3>
-          <p class="event-info">Oktober 2025 - Banyuwangi</p>
-          <div class="event-header">
-            <span class="category">Budaya</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/PerangTopat.jpg" />
-        <div class="event-content">
-          <h3 class="event-title">Perang Topat</h3>
-          <p class="event-info">29 November 2025 - Lombok Barat</p>
-          <div class="event-header">
-            <span class="category">Budaya</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/sawahlunto1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Sawahlunto International Music</h3>
-          <p class="event-info">10 Oktober 2025 - Sumatera Barat</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/soloKroncong.png" />
-        <div class="event-content">
-          <h3 class="event-title">Solo Keroncong Festival</h3>
-          <p class="event-info">25 Juli 2025 - Solo</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/musiktong1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Festival Musik Tong-Tong</h3>
-          <p class="event-info">18 Oktober 2025 - Sumenep</p>
-          <div class="event-header">
-            <span class="category">Musik</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/artjog1.png" />
-        <div class="event-content">
-          <h3 class="event-title">ARTJOG</h3>
-          <p class="event-info">20 Juni 2025 - Jogjakarta</p>
-          <div class="event-header">
-            <span class="category">Seni</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/artJakarta1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Art Jakarta</h3>
-          <p class="event-info">3-5 Oktober 2025 - Jakarta</p>
-          <div class="event-header">
-            <span class="category">Seni</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
-      </div></a>
-
-      <a href="detailEvent.php">
-      <div class="event-card">
-        <img src="assets/images/tubaba1.png" />
-        <div class="event-content">
-          <h3 class="event-title">Tubaba Art Festival</h3>
-          <p class="event-info">27 Sept - 1 Okt 2025 - Lampung</p>
-          <div class="event-header">
-            <span class="category">Seni</span>
-            <span class="detail-link">Lihat Detail</span>
-          </div>
-        </div>
+    <?php if (!empty($events)): ?>
+      <div class="event-grid">
+        <?php foreach ($events as $event): ?>
+          <?php
+            $thumbnail = !empty($event['thumnail']) ? $event['thumnail'] : 'assets/images/hero-event.svg';
+            $eventInfo = formatEventDateRange($event['start_date'] ?? null, $event['end_date'] ?? null) . ' - ' . ($event['city_name'] ?: '-');
+          ?>
+          <a class="event-card-link" href="detailEvent.php?id=<?= urlencode((string) $event['id']) ?>">
+            <div class="event-card">
+              <img src="<?= htmlspecialchars($thumbnail) ?>" alt="<?= htmlspecialchars($event['title']) ?>" />
+              <div class="event-content">
+                <h3 class="event-title"><?= htmlspecialchars($event['title']) ?></h3>
+                <p class="event-info"><?= htmlspecialchars($eventInfo) ?></p>
+                <div class="event-header">
+                  <span class="category"><?= htmlspecialchars($event['category_name']) ?></span>
+                  <span class="detail-link">Lihat Detail</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        <?php endforeach; ?>
       </div>
-    </div></a>
+    <?php else: ?>
+      <div class="empty-events">
+        Tidak ada event yang cocok dengan filter atau pencarian ini.
+      </div>
+    <?php endif; ?>
 
     <?php include("templates/footer.php"); ?>
   </body>
