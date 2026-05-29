@@ -8,7 +8,7 @@ $navActive = $navActive ?? "";
 $path_prefix = '';
 if (strpos($_SERVER['PHP_SELF'], '/akun/') !== false) {
     $path_prefix = '../';
-} elseif (strpos($_SERVER['PHP_SELF'], '/admin/') !== false) {
+} elseif (strpos($_SERVER['PHP_SELF'], '/admin/') !== false || strpos($_SERVER['PHP_SELF'], '/super admin/') !== false || strpos($_SERVER['PHP_SELF'], '/super%20admin/') !== false) {
     $path_prefix = '../../';
 }
 ?>
@@ -56,7 +56,15 @@ if (strpos($_SERVER['PHP_SELF'], '/akun/') !== false) {
     </nav>
 
     <?php if (isset($_SESSION['user_id'])): ?>
-        <a href="<?= $_SESSION['level'] === 'admin' ? $path_prefix . 'admin/dashboard' : $path_prefix . 'akun/eventfavorit.php' ?>" class="container-logo desktop-only">
+        <?php
+            $profileUrl = $path_prefix . 'akun/eventfavorit.php';
+            if ($_SESSION['level'] === 'super_admin') {
+                $profileUrl = $path_prefix . 'super%20admin/dashboard';
+            } elseif ($_SESSION['level'] === 'admin') {
+                $profileUrl = $path_prefix . 'admin/dashboard';
+            }
+        ?>
+        <a href="<?= $profileUrl ?>" class="container-logo desktop-only">
             <span class="nama-pengguna"><?= htmlspecialchars($_SESSION['nama']) ?></span>
             <img class="gambar-menu gambar-menu--avatar" src="<?= htmlspecialchars(getProfilePhotoUrl($_SESSION['profile_photo'] ?? '', $path_prefix)) ?>" alt="Profil" />
         </a>

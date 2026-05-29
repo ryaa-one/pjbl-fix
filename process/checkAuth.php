@@ -4,7 +4,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$loginPath = dirname($_SERVER['PHP_SELF'] ?? '') === '/akun' ? '../login.php' : (strpos($_SERVER['PHP_SELF'] ?? '', '/admin/') !== false ? '../../login.php' : 'login.php');
+$currentPath = $_SERVER['PHP_SELF'] ?? '';
+$isNestedAdminPath = strpos($currentPath, '/admin/') !== false
+    || strpos($currentPath, '/super admin/') !== false
+    || strpos($currentPath, '/super%20admin/') !== false;
+$loginPath = dirname($currentPath) === '/akun' ? '../login.php' : ($isNestedAdminPath ? '../../login.php' : 'login.php');
 
 // Cegah browser menyimpan halaman ini di cache
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");

@@ -271,6 +271,48 @@
   text-align: right;
 }
 
+.super-dashboard-events-table {
+  min-width: 980px;
+}
+
+.super-dashboard-events-table th,
+.super-dashboard-events-table td {
+  vertical-align: middle;
+}
+
+.super-dashboard-events-table .col-number {
+  width: 56px;
+}
+
+.super-dashboard-events-table .col-super-event {
+  width: 28%;
+}
+
+.super-dashboard-events-table .col-super-category {
+  width: 15%;
+}
+
+.super-dashboard-events-table .col-super-admin {
+  width: 17%;
+}
+
+.super-dashboard-events-table .col-super-date {
+  width: 112px;
+}
+
+.super-dashboard-events-table .col-metric {
+  width: 90px;
+  text-align: right;
+}
+
+.super-dashboard-events-table .category-badge {
+  max-width: 100%;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 960px) {
   .stats-grid {
     grid-template-columns: 1fr;

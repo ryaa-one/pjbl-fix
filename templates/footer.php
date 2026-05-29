@@ -2,7 +2,7 @@
 $path_prefix = '';
 if (strpos($_SERVER['PHP_SELF'], '/akun/') !== false) {
     $path_prefix = '../';
-} elseif (strpos($_SERVER['PHP_SELF'], '/admin/') !== false) {
+} elseif (strpos($_SERVER['PHP_SELF'], '/admin/') !== false || strpos($_SERVER['PHP_SELF'], '/super admin/') !== false || strpos($_SERVER['PHP_SELF'], '/super%20admin/') !== false) {
     $path_prefix = '../../';
 }
 ?>
