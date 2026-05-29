@@ -4,6 +4,7 @@ include '../../process/checkAuth.php';
 include '../../config/database.php';
 
 $userId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$isModal = isset($_GET['modal']) && $_GET['modal'] === '1';
 $errors = [];
 
 if ($userId <= 0) {
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['level'] = $formData['level'];
                 }
 
-                header("Location: index.php?status=updated");
+                header("Location: index.php?status=updated" . ($isModal ? "&modal=1" : ""));
                 exit();
             }
 
@@ -101,25 +102,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       rel="stylesheet"
     />
   </head>
-  <body>
-  <?php
-    $navMode = "profile";
-    include '../../templates/navbar.php';
-  ?>
+  <body class="<?= $isModal ? 'admin-edit-modal-page' : '' ?>">
+  <?php if (! $isModal): ?>
+    <?php
+      $navMode = "profile";
+      include '../../templates/navbar.php';
+    ?>
+  <?php endif; ?>
 
     <div class="admin-layout">
-      <?php
-        $adminActive = "user";
-        include '../../templates/adminSidebar.php';
-      ?>
+      <?php if (! $isModal): ?>
+        <?php
+          $adminActive = "user";
+          include '../../templates/adminSidebar.php';
+        ?>
+      <?php endif; ?>
 
       <main class="admin-content event-form-content">
-        <div class="admin-back-title">
-          <a class="admin-back-link" href="index.php" aria-label="Kembali ke daftar user">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-          </a>
-          <h1 class="admin-page-title">Edit User</h1>
-        </div>
+        <?php if (! $isModal): ?>
+          <div class="admin-back-title">
+            <a class="admin-back-link" href="index.php" aria-label="Kembali ke daftar user">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+            </a>
+            <h1 class="admin-page-title">Edit User</h1>
+          </div>
+        <?php endif; ?>
 
         <?php if (! empty($errors)): ?>
           <div class="admin-alert admin-alert--error">
@@ -150,13 +157,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
           </div>
           <div class="admin-form__actions">
-            <a class="admin-button admin-button--secondary" href="index.php">Cancel</a>
-            <button class="admin-button admin-button--primary" type="submit">Save Changes</button>
+            <?php if ($isModal): ?>
+              <button class="admin-button admin-button--secondary" type="button" onclick="window.parent && window.parent.closeAdminEditModal ? window.parent.closeAdminEditModal() : window.location.href='index.php'">Cancel</button>
+            <?php else: ?>
+              <a class="admin-button admin-button--secondary" href="index.php">Cancel</a>
+            <?php endif; ?>
+            <button class="admin-button admin-button--primary" type="submit">Simpan</button>
           </div>
         </form>
       </main>
     </div>
 
-    <?php include("../../templates/footer.php"); ?>
+    <?php if (! $isModal): ?>
+      <?php include("../../templates/footer.php"); ?>
+    <?php endif; ?>
   </body>
 </html>

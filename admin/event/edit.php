@@ -6,6 +6,7 @@ include '../../process/category.php';
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+$isModal = isset($_GET['modal']) && $_GET['modal'] === '1';
 $errors = [];
 
 if ($eventId <= 0) {
@@ -21,6 +22,7 @@ $queryEvent = "
         events.category_id,
         categories.name AS category_name,
         events.city_id,
+        cities.province_id,
         events.start_date,
         events.end_date,
         events.location,
@@ -28,6 +30,7 @@ $queryEvent = "
         events.gallery_carousel
     FROM events
     LEFT JOIN categories ON events.category_id = categories.id
+    LEFT JOIN cities ON events.city_id = cities.id
     WHERE events.id = ?
       AND events.user_id = ?
     LIMIT 1
@@ -49,23 +52,38 @@ if (! $event) {
     exit();
 }
 
-// city_id diambil langsung dari tabel cities
 $provinceOptions = [];
-$execCities = mysqli_query($koneksi, "SELECT id, name FROM cities ORDER BY name ASC");
-if ($execCities) {
-    while ($city = mysqli_fetch_assoc($execCities)) {
-        $provinceOptions[(int) $city['id']] = $city['name'];
+$execProvinces = mysqli_query($koneksi, "SELECT id, name FROM provinces ORDER BY name ASC");
+if ($execProvinces) {
+    while ($province = mysqli_fetch_assoc($execProvinces)) {
+        $provinceOptions[(int) $province['id']] = $province['name'];
     }
 }
-// Fallback jika tabel cities kosong
-if (empty($provinceOptions)) {
-    $provinceOptions = [1 => 'Jawa', 2 => 'Kalimantan', 3 => 'Sumatera'];
+
+$selectedProvinceId = (int) ($event['province_id'] ?? 0);
+$cityOptions = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $selectedProvinceId = (int) ($_POST['province_id'] ?? 0);
+}
+
+if ($selectedProvinceId > 0) {
+    $stmtCities = mysqli_prepare($koneksi, "SELECT id, name FROM cities WHERE province_id = ? ORDER BY name ASC");
+    if ($stmtCities) {
+        mysqli_stmt_bind_param($stmtCities, 'i', $selectedProvinceId);
+        mysqli_stmt_execute($stmtCities);
+        $resCities = mysqli_stmt_get_result($stmtCities);
+        while ($city = mysqli_fetch_assoc($resCities)) {
+            $cityOptions[(int) $city['id']] = $city['name'];
+        }
+        mysqli_stmt_close($stmtCities);
+    }
 }
 
 $formData = [
     'title' => $event['title'],
     'description' => $event['description'],
     'category_name' => $event['category_name'] ?? '',
+    'province_id' => $selectedProvinceId,
     'city_id' => (int) ($event['city_id'] ?? 0),
     'start_date' => $event['start_date'],
     'end_date' => $event['end_date'],
@@ -194,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['title'] = trim($_POST['title'] ?? '');
     $formData['description'] = trim($_POST['description'] ?? '');
     $formData['category_name'] = normalizeCategoryName($_POST['category_name'] ?? '');
+    $formData['province_id'] = (int) ($_POST['province_id'] ?? 0);
     $formData['city_id'] = (int) ($_POST['city_id'] ?? 0);
     $formData['start_date'] = trim($_POST['start_date'] ?? '');
     $formData['end_date'] = trim($_POST['end_date'] ?? '');
@@ -212,7 +231,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Kategori event wajib diisi.";
     }
 
-    if ($formData['city_id'] === 0 || !isset($provinceOptions[$formData['city_id']])) {
+    if ($formData['province_id'] === 0 || !isset($provinceOptions[$formData['province_id']])) {
+        $errors[] = "Provinsi event wajib dipilih.";
+    }
+
+    if ($formData['city_id'] === 0 || !isset($cityOptions[$formData['city_id']])) {
         $errors[] = "Kota/Kabupaten event wajib dipilih.";
     }
 
@@ -342,7 +365,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            header("Location: index.php?status=updated");
+            header("Location: index.php?status=updated" . ($isModal ? "&modal=1" : ""));
             exit();
         }
 
@@ -375,25 +398,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       rel="stylesheet"
     />
   </head>
-  <body>
-  <?php
-    $navMode = "profile";
-    include '../../templates/navbar.php';
-  ?>
+  <body class="<?= $isModal ? 'admin-edit-modal-page' : '' ?>">
+  <?php if (! $isModal): ?>
+    <?php
+      $navMode = "profile";
+      include '../../templates/navbar.php';
+    ?>
+  <?php endif; ?>
 
     <div class="admin-layout">
-      <?php
-        $adminActive = "event";
-        include '../../templates/adminSidebar.php';
-      ?>
+      <?php if (! $isModal): ?>
+        <?php
+          $adminActive = "event";
+          include '../../templates/adminSidebar.php';
+        ?>
+      <?php endif; ?>
 
       <main class="admin-content event-form-content">
-        <div class="admin-back-title">
-          <a class="admin-back-link" href="index.php" aria-label="Kembali ke daftar event">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-          </a>
-          <h1 class="admin-page-title">Edit Event</h1>
-        </div>
+        <?php if (! $isModal): ?>
+          <div class="admin-back-title">
+            <a class="admin-back-link" href="index.php" aria-label="Kembali ke daftar event">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+            </a>
+            <h1 class="admin-page-title">Edit Event</h1>
+          </div>
+        <?php endif; ?>
 
         <?php if (! empty($errors)): ?>
           <div class="admin-alert admin-alert--error">
@@ -422,15 +451,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 placeholder="Budaya"
               />
             </div>
+          </div>
+          <div class="admin-form__row">
             <div>
-              <label class="admin-label" for="city_id">Kota / Kabupaten</label>
-              <select class="admin-field" id="city_id" name="city_id">
-                <option value="">Pilih kota/kabupaten</option>
+              <label class="admin-label" for="province_id">Provinsi</label>
+              <select class="admin-field" id="province_id" name="province_id">
+                <option value="">Pilih provinsi</option>
                 <?php foreach ($provinceOptions as $id => $label): ?>
-                  <option value="<?= $id ?>" <?= $formData['city_id'] === $id ? 'selected' : '' ?>>
+                  <option value="<?= $id ?>" <?= $formData['province_id'] === $id ? 'selected' : '' ?>>
                     <?= htmlspecialchars($label) ?>
                   </option>
                 <?php endforeach; ?>
+              </select>
+            </div>
+            <div>
+              <label class="admin-label" for="city_id">Kota / Kabupaten</label>
+              <select class="admin-field" id="city_id" name="city_id" <?= empty($cityOptions) ? 'disabled' : '' ?>>
+                <?php if (empty($cityOptions)): ?>
+                  <option value="">Pilih provinsi terlebih dahulu</option>
+                <?php else: ?>
+                  <option value="">Pilih kota/kabupaten</option>
+                  <?php foreach ($cityOptions as $id => $label): ?>
+                    <option value="<?= $id ?>" <?= $formData['city_id'] === $id ? 'selected' : '' ?>>
+                      <?= htmlspecialchars($label) ?>
+                    </option>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </select>
             </div>
           </div>
@@ -539,8 +585,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="admin-upload__hint" id="selected-count">Belum ada file dipilih.</div>
           </div>
           <div class="admin-form__actions">
-            <a class="admin-button admin-button--secondary" href="index.php">Cancel</a>
-            <button class="admin-button admin-button--primary" type="submit">Save Changes</button>
+            <?php if ($isModal): ?>
+              <button class="admin-button admin-button--secondary" type="button" onclick="window.parent && window.parent.closeAdminEditModal ? window.parent.closeAdminEditModal() : window.location.href='index.php'">Cancel</button>
+            <?php else: ?>
+              <a class="admin-button admin-button--secondary" href="index.php">Cancel</a>
+            <?php endif; ?>
+            <button class="admin-button admin-button--primary" type="submit">Simpan</button>
           </div>
         </form>
       </main>
@@ -601,8 +651,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           }
         });
       });
+
+      const provinceSelect = document.getElementById('province_id');
+      const citySelect = document.getElementById('city_id');
+
+      function resetCitySelect(placeholder) {
+        if (!citySelect) {
+          return;
+        }
+
+        citySelect.innerHTML = `<option value="">${placeholder}</option>`;
+        citySelect.disabled = true;
+      }
+
+      if (provinceSelect && citySelect) {
+        provinceSelect.addEventListener('change', function () {
+          const provinceId = this.value;
+
+          if (!provinceId) {
+            resetCitySelect('Pilih provinsi terlebih dahulu');
+            return;
+          }
+
+          citySelect.disabled = true;
+          citySelect.innerHTML = '<option value="">Memuat kota...</option>';
+
+          fetch(`getCities.php?province_id=${encodeURIComponent(provinceId)}`)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error('Network error');
+              }
+
+              return response.json();
+            })
+            .then((cities) => {
+              if (cities.length === 0) {
+                resetCitySelect('Tidak ada kota tersedia');
+                return;
+              }
+
+              citySelect.innerHTML = '<option value="">Pilih kota/kabupaten</option>';
+              cities.forEach((city) => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.textContent = city.name;
+                citySelect.appendChild(option);
+              });
+              citySelect.disabled = false;
+            })
+            .catch(() => {
+              resetCitySelect('Gagal memuat kota');
+            });
+        });
+      }
     </script>
 
-    <?php include("../../templates/footer.php"); ?>
+    <?php if (! $isModal): ?>
+      <?php include("../../templates/footer.php"); ?>
+    <?php endif; ?>
   </body>
 </html>

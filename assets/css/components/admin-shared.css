@@ -33,6 +33,10 @@ body {
   font-family: "Inter", sans-serif;
 }
 
+body.admin-edit-modal-open {
+  overflow: hidden;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -306,6 +310,232 @@ textarea.admin-field {
   color: #b42318;
 }
 
+.admin-edit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  padding: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-edit-modal.is-open {
+  display: flex;
+}
+
+.admin-edit-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.48)),
+    rgba(17, 24, 39, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.admin-edit-modal__dialog {
+  position: relative;
+  width: min(720px, 100%);
+  height: min(700px, calc(100vh - 64px));
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 22px 55px rgba(15, 23, 42, 0.24),
+    0 6px 18px rgba(15, 23, 42, 0.12);
+  transform: translateY(18px);
+}
+
+.admin-edit-modal__dialog--wide {
+  width: min(1040px, 100%);
+  height: min(760px, calc(100vh - 64px));
+}
+
+.admin-edit-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid #edf0f5;
+  background: #ffffff;
+}
+
+.admin-edit-modal__title {
+  color: var(--admin-text);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.admin-edit-modal__close {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 1px solid #e1e6ef;
+  border-radius: 50%;
+  background: #f8fafc;
+  color: #526070;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-edit-modal__close:hover {
+  transform: translateY(-1px);
+  border-color: #ccd5e2;
+  background: #eef2f7;
+  color: #1f2937;
+}
+
+.admin-edit-modal__frame {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  border: 0;
+  background: #ffffff;
+}
+
+body.admin-edit-modal-page {
+  min-height: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+
+body.admin-edit-modal-page .admin-layout {
+  display: block;
+  min-height: auto;
+  padding: 24px;
+}
+
+body.admin-edit-modal-page .admin-content {
+  max-width: none;
+}
+
+body.admin-edit-modal-page .admin-form {
+  display: grid;
+  gap: 18px;
+}
+
+body.admin-edit-modal-page .admin-form__group,
+body.admin-edit-modal-page .admin-form__row {
+  margin-bottom: 0;
+}
+
+body.admin-edit-modal-page .admin-form__row {
+  gap: 16px;
+}
+
+body.admin-edit-modal-page .admin-label {
+  margin-bottom: 7px;
+  color: #465266;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body.admin-edit-modal-page .admin-field {
+  min-height: 46px;
+  border-color: #dce3ee;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+body.admin-edit-modal-page textarea.admin-field {
+  min-height: 112px;
+  line-height: 1.55;
+}
+
+body.admin-edit-modal-page .admin-field:focus {
+  border-color: #9ea8ff;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+body.admin-edit-modal-page .admin-alert {
+  margin-bottom: 18px;
+  border-radius: 12px;
+}
+
+body.admin-edit-modal-page .admin-upload,
+body.admin-edit-modal-page .gallery-manager {
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+body.admin-edit-modal-page .admin-upload {
+  gap: 16px;
+  padding: 18px;
+  background: #ffffff;
+}
+
+body.admin-edit-modal-page .admin-upload__preview {
+  grid-template-columns: minmax(190px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+body.admin-edit-modal-page .admin-upload__preview-thumb {
+  min-height: 160px;
+  border-radius: 12px;
+}
+
+body.admin-edit-modal-page .admin-upload__button {
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+body.admin-edit-modal-page .admin-upload__file {
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+body.admin-edit-modal-page .gallery-manager {
+  gap: 14px;
+  padding: 16px;
+}
+
+body.admin-edit-modal-page .admin-form__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 10px -24px -24px;
+  padding: 16px 24px;
+  border-top: 1px solid #eceef3;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+}
+
+body.admin-edit-modal-page .admin-form__actions .admin-button {
+  min-width: 120px;
+  min-height: 44px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+body.admin-edit-modal-page .admin-button--secondary {
+  border: 1px solid #dce3ee;
+  background: #ffffff;
+  color: #344054;
+}
+
+body.admin-edit-modal-page .admin-button--primary {
+  background: var(--admin-primary);
+  box-shadow: 0 10px 22px rgba(46, 46, 232, 0.18);
+}
+
 @media (max-width: 1024px) {
   .admin-layout {
     padding: 24px;
@@ -318,6 +548,29 @@ textarea.admin-field {
 }
 
 @media (max-width: 760px) {
+  .admin-edit-modal {
+    align-items: flex-end;
+    padding: 18px;
+  }
+
+  .admin-edit-modal__dialog,
+  .admin-edit-modal__dialog--wide {
+    width: 100%;
+    height: min(92vh, 760px);
+    max-height: 92vh;
+    border-radius: 20px;
+    transform: none;
+  }
+
+  .admin-edit-modal__header {
+    min-height: 64px;
+    padding: 16px 18px;
+  }
+
+  body.admin-edit-modal-page .admin-upload__preview {
+    grid-template-columns: 1fr;
+  }
+
   .admin-layout {
     flex-direction: column;
     gap: 24px;
@@ -372,6 +625,57 @@ textarea.admin-field {
 }
 
 @media (max-width: 600px) {
+  .admin-edit-modal {
+    padding: 8px;
+  }
+
+  .admin-edit-modal__dialog,
+  .admin-edit-modal__dialog--wide {
+    height: calc(100vh - 16px);
+    max-height: calc(100vh - 16px);
+    border-radius: 18px;
+  }
+
+  .admin-edit-modal__header {
+    min-height: 60px;
+    padding: 13px 14px 13px 16px;
+  }
+
+  .admin-edit-modal__title {
+    font-size: 18px;
+  }
+
+  .admin-edit-modal__close {
+    width: 36px;
+    height: 36px;
+  }
+
+  body.admin-edit-modal-page .admin-layout {
+    padding: 16px;
+  }
+
+  body.admin-edit-modal-page .admin-form {
+    gap: 15px;
+  }
+
+  body.admin-edit-modal-page .admin-form__actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  body.admin-edit-modal-page .admin-form__actions .admin-button {
+    width: 100%;
+  }
+
+  body.admin-edit-modal-page .admin-upload {
+    padding: 14px;
+  }
+
+  body.admin-edit-modal-page .admin-form__actions {
+    margin: 8px -16px -16px;
+    padding: 14px 16px;
+  }
+
   .admin-layout {
     padding: 18px 20px 40px;
   }

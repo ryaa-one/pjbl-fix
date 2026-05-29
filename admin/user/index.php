@@ -136,7 +136,11 @@ if ($statusMessage === "" && isset($_GET['status'])) {
                     <td class="events-table__muted col-user-id">#<?= htmlspecialchars($user['id']) ?></td>
                     <td class="col-actions">
                       <div class="table-actions">
-                        <a class="table-action table-action--edit" href="edit.php?id=<?= htmlspecialchars($user['id']) ?>">Edit</a>
+                        <a
+                          class="table-action table-action--edit js-admin-edit-modal"
+                          href="edit.php?id=<?= htmlspecialchars($user['id']) ?>&modal=1"
+                          data-modal-title="Edit User"
+                        >Edit</a>
                         <span class="table-action-separator"></span>
                         
                         <form method="post" action="" onsubmit="return confirm('Hapus user ini?');">
@@ -167,6 +171,72 @@ if ($statusMessage === "" && isset($_GET['status'])) {
         <?php endif; ?>
       </main>
     </div>
+
+    <div class="admin-edit-modal" id="admin-edit-modal" aria-hidden="true">
+      <div class="admin-edit-modal__backdrop" data-close-edit-modal></div>
+      <section class="admin-edit-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="admin-edit-modal-title">
+        <div class="admin-edit-modal__header">
+          <h2 class="admin-edit-modal__title" id="admin-edit-modal-title">Edit User</h2>
+          <button class="admin-edit-modal__close" type="button" aria-label="Tutup modal edit" data-close-edit-modal>&times;</button>
+        </div>
+        <iframe class="admin-edit-modal__frame" id="admin-edit-modal-frame" title="Form edit user"></iframe>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        const modal = document.getElementById('admin-edit-modal');
+        const frame = document.getElementById('admin-edit-modal-frame');
+        const title = document.getElementById('admin-edit-modal-title');
+
+        if (!modal || !frame || !title) {
+          return;
+        }
+
+        function openModal(src, modalTitle) {
+          title.textContent = modalTitle || 'Edit';
+          frame.src = src;
+          modal.classList.add('is-open');
+          modal.setAttribute('aria-hidden', 'false');
+          document.body.classList.add('admin-edit-modal-open');
+        }
+
+        window.closeAdminEditModal = function () {
+          modal.classList.remove('is-open');
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('admin-edit-modal-open');
+          frame.removeAttribute('src');
+        };
+
+        document.querySelectorAll('.js-admin-edit-modal').forEach((trigger) => {
+          trigger.addEventListener('click', function (event) {
+            event.preventDefault();
+            openModal(this.href, this.dataset.modalTitle);
+          });
+        });
+
+        document.querySelectorAll('[data-close-edit-modal]').forEach((trigger) => {
+          trigger.addEventListener('click', window.closeAdminEditModal);
+        });
+
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            window.closeAdminEditModal();
+          }
+        });
+
+        frame.addEventListener('load', function () {
+          try {
+            const frameUrl = new URL(frame.contentWindow.location.href);
+            if (frameUrl.pathname.endsWith('/admin/user/index.php') && frameUrl.searchParams.get('status') === 'updated') {
+              window.location.href = 'index.php?status=updated';
+            }
+          } catch (error) {
+            return;
+          }
+        });
+      })();
+    </script>
 
     <?php include("../../templates/footer.php"); ?>
   </body>
