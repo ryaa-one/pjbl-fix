@@ -102,6 +102,7 @@ textarea {
 .admin-content {
   flex: 1;
   max-width: var(--admin-content-width);
+  min-width: 0;
 }
 
 .admin-page-title {
@@ -308,6 +309,7 @@ textarea.admin-field {
 @media (max-width: 1024px) {
   .admin-layout {
     padding: 24px;
+    gap: 22px;
   }
 
   .admin-content {
@@ -330,6 +332,8 @@ textarea.admin-field {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .admin-sidebar__link {
@@ -350,6 +354,7 @@ textarea.admin-field {
 
   .admin-page-title {
     font-size: 26px;
+    letter-spacing: -0.02em;
   }
 
   .admin-search {
@@ -381,6 +386,10 @@ textarea.admin-field {
     font-size: 14px;
   }
 
+  .admin-page-title {
+    font-size: 24px;
+  }
+
   .admin-form__row {
     gap: 14px;
   }
@@ -397,5 +406,22 @@ textarea.admin-field {
   .admin-upload {
     min-height: 110px;
     border-radius: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-layout {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .admin-button,
+  .admin-field,
+  .admin-search__input {
+    min-height: 40px;
+  }
+
+  .admin-form__actions {
+    gap: 10px;
   }
 }

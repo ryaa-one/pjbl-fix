@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS event_reviews (
     user_id INT UNSIGNED NOT NULL,
     review_description TEXT NOT NULL,
     rating TINYINT UNSIGNED NOT NULL,
+    admin_reply TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_event_reviews_event_id (event_id),
     INDEX idx_event_reviews_user_id (user_id)

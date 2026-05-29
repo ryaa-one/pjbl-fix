@@ -3,6 +3,9 @@ $currentLevel = "admin";
 include '../../process/checkAuth.php';
 include '../../config/database.php';
 include_once '../../includes/profile_photo.php';
+include_once '../../includes/user_social.php';
+
+ensureUserSocialColumns($koneksi);
 
 $userId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $errors = [];
@@ -10,7 +13,7 @@ $successMessage = '';
 
 function fetchCurrentAdminProfile($koneksi, $userId)
 {
-    $stmtUser = mysqli_prepare($koneksi, "SELECT id, name, email, level, profile_photo FROM users WHERE id = ? LIMIT 1");
+    $stmtUser = mysqli_prepare($koneksi, "SELECT id, name, email, level, profile_photo, whatsapp, instagram FROM users WHERE id = ? LIMIT 1");
 
     if (! $stmtUser) {
         return null;
@@ -40,12 +43,16 @@ $formData = [
     'name' => '',
     'email' => '',
     'profile_photo' => '',
+    'whatsapp' => '',
+    'instagram' => '',
 ];
 
 if ($user) {
     $formData['name'] = $user['name'];
     $formData['email'] = $user['email'];
     $formData['profile_photo'] = $user['profile_photo'] ?? '';
+    $formData['whatsapp'] = $user['whatsapp'] ?? '';
+    $formData['instagram'] = $user['instagram'] ?? '';
 }
 
 if (isset($_GET['status']) && $_GET['status'] === 'updated') {
@@ -92,12 +99,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         $formData['name'] = $user['name'];
         $formData['email'] = $user['email'];
         $formData['profile_photo'] = $user['profile_photo'] ?? '';
+        $formData['whatsapp'] = $user['whatsapp'] ?? '';
+        $formData['instagram'] = $user['instagram'] ?? '';
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? '') === 'update_profile') {
     $formData['name'] = trim($_POST['name'] ?? '');
     $formData['email'] = trim($_POST['email'] ?? '');
+    $formData['whatsapp'] = normalizeWhatsappNumber($_POST['whatsapp'] ?? '');
+    $formData['instagram'] = normalizeInstagramUsername($_POST['instagram'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if ($formData['name'] === '') {
@@ -108,6 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         $errors[] = "Email wajib diisi.";
     } elseif (! filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = "Format email tidak valid.";
+    }
+
+    if ($formData['whatsapp'] !== '' && strlen($formData['whatsapp']) < 8) {
+        $errors[] = "Nomor WhatsApp tidak valid.";
+    }
+
+    if ($formData['instagram'] !== '' && ! preg_match('/^[A-Za-z0-9._]{1,30}$/', $formData['instagram'])) {
+        $errors[] = "Username Instagram tidak valid.";
     }
 
     if (empty($errors)) {
@@ -128,9 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         }
 
         if (empty($errors)) {
-            $sql = "UPDATE users SET name = ?, email = ?";
-            $types = "ss";
-            $params = [$formData['name'], $formData['email']];
+            $sql = "UPDATE users SET name = ?, email = ?, whatsapp = ?, instagram = ?";
+            $types = "ssss";
+            $params = [$formData['name'], $formData['email'], $formData['whatsapp'], $formData['instagram']];
 
             if ($password !== '') {
                 $passwordHashed = password_hash($password, PASSWORD_DEFAULT);
@@ -173,6 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         $formData['name'] = $user['name'];
         $formData['email'] = $user['email'];
         $formData['profile_photo'] = $user['profile_photo'] ?? '';
+        $formData['whatsapp'] = $user['whatsapp'] ?? '';
+        $formData['instagram'] = $user['instagram'] ?? '';
     }
 }
 ?>
@@ -237,6 +258,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
           <div class="admin-form__group">
             <label class="admin-label" for="email">Email</label>
             <input class="admin-field" id="email" name="email" type="email" value="<?= htmlspecialchars($formData['email']) ?>" placeholder="you@example.com" />
+          </div>
+          <div class="admin-form__group">
+            <label class="admin-label" for="whatsapp">Nomor WhatsApp</label>
+            <input class="admin-field" id="whatsapp" name="whatsapp" type="tel" value="<?= htmlspecialchars($formData['whatsapp']) ?>" placeholder="6281234567890" />
+          </div>
+          <div class="admin-form__group">
+            <label class="admin-label" for="instagram">Username Instagram</label>
+            <input class="admin-field" id="instagram" name="instagram" type="text" value="<?= htmlspecialchars($formData['instagram']) ?>" placeholder="username_instagram" />
           </div>
           <div class="admin-form__group">
             <label class="admin-label" for="password">Kata Sandi</label>

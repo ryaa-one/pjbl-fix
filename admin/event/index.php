@@ -7,6 +7,7 @@ include '../../process/getEvent.php';
 
 $statusMessage = "";
 $statusType = "success";
+$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
 function buildEventPaginationUrl(int $page): string
 {
@@ -19,16 +20,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event_id'])) {
 
     $deleteEventId = (int) $_POST['delete_event_id'];
 
-    $stmtDeleteEvent = mysqli_prepare($koneksi, "DELETE FROM events WHERE id = ?");
+    $stmtDeleteEvent = mysqli_prepare($koneksi, "DELETE FROM events WHERE events.id = ? AND events.user_id = ?");
     if ($stmtDeleteEvent) {
-        mysqli_stmt_bind_param($stmtDeleteEvent, 'i', $deleteEventId);
+        mysqli_stmt_bind_param($stmtDeleteEvent, 'ii', $deleteEventId, $currentAdminId);
         $execDeleteEvent = mysqli_stmt_execute($stmtDeleteEvent);
+        $affectedRows = mysqli_stmt_affected_rows($stmtDeleteEvent);
         mysqli_stmt_close($stmtDeleteEvent);
     } else {
         $execDeleteEvent = false;
+        $affectedRows = 0;
     }
 
-    if ($execDeleteEvent) {
+    if ($execDeleteEvent && $affectedRows > 0) {
         header("Location: index.php?status=deleted");
         exit();
     }

@@ -6,6 +6,7 @@ $sort = isset($_GET['sort']) ? trim($_GET['sort']) : "id";
 $direction = isset($_GET['direction']) ? strtolower(trim($_GET['direction'])) : "desc";
 $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $perPage = 10;
+$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
 $allowedSorts = [
     'id' => 'events.id',
@@ -57,9 +58,9 @@ $queryEventsBase = "
         ON events.city_id = cities.id
 ";
 
-$conditions = [];
-$paramTypes = '';
-$paramValues = [];
+$conditions = ["events.user_id = ?"];
+$paramTypes = 'i';
+$paramValues = [$currentAdminId];
 
 if ($search !== "") {
     $searchLike = '%' . $search . '%';
@@ -82,9 +83,7 @@ if ($filterCategory !== '') {
     $paramValues[] = (int) $filterCategory;
 }
 
-if (! empty($conditions)) {
-    $queryEventsBase .= " WHERE " . implode(" AND ", $conditions);
-}
+$queryEventsBase .= " WHERE " . implode(" AND ", $conditions);
 
 $queryCountEvents = "
     SELECT COUNT(*) AS total
@@ -93,9 +92,7 @@ $queryCountEvents = "
     LEFT JOIN cities ON events.city_id = cities.id
 ";
 
-if (! empty($conditions)) {
-    $queryCountEvents .= " WHERE " . implode(" AND ", $conditions);
-}
+$queryCountEvents .= " WHERE " . implode(" AND ", $conditions);
 
 $totalEvents = 0;
 if (! empty($paramValues)) {

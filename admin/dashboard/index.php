@@ -15,6 +15,18 @@ $likesChartLabels = [];
 $likesChartValues = [];
 $likesLast30Days = 0;
 $likesPrevious30Days = 0;
+$dashboardEventPage = isset($_GET['event_page']) ? max(1, (int) $_GET['event_page']) : 1;
+$dashboardEventPerPage = 10;
+$totalDashboardEvents = 0;
+$dashboardEvents = [];
+
+function buildDashboardEventPaginationUrl(int $page): string
+{
+    $params = $_GET;
+    $params['event_page'] = $page;
+
+    return 'index.php?' . http_build_query($params);
+}
 
 $labelsByDate = [];
 $valuesByDate = [];
@@ -144,6 +156,66 @@ if ($likesPrevious30Days > 0) {
 
 $trendPrefix = $trendPercentage >= 0 ? '+' : '-';
 $trendLabel = '~ ' . $trendPrefix . abs((int) round($trendPercentage)) . '%';
+
+$stmtDashboardEventCount = mysqli_prepare(
+    $koneksi,
+    "
+    SELECT COUNT(*) AS total
+    FROM events
+    WHERE events.user_id = ?
+    "
+);
+
+if ($stmtDashboardEventCount) {
+    mysqli_stmt_bind_param($stmtDashboardEventCount, 'i', $currentAdminId);
+    mysqli_stmt_execute($stmtDashboardEventCount);
+    $dashboardEventCountResult = mysqli_stmt_get_result($stmtDashboardEventCount);
+    $dashboardEventCountRow = $dashboardEventCountResult ? mysqli_fetch_assoc($dashboardEventCountResult) : null;
+    $totalDashboardEvents = (int) ($dashboardEventCountRow['total'] ?? 0);
+    mysqli_stmt_close($stmtDashboardEventCount);
+}
+
+$totalDashboardEventPages = max(1, (int) ceil($totalDashboardEvents / $dashboardEventPerPage));
+if ($dashboardEventPage > $totalDashboardEventPages) {
+    $dashboardEventPage = $totalDashboardEventPages;
+}
+
+$dashboardEventOffset = ($dashboardEventPage - 1) * $dashboardEventPerPage;
+$stmtDashboardEvents = mysqli_prepare(
+    $koneksi,
+    "
+    SELECT
+        events.id,
+        events.title,
+        COALESCE(categories.name, 'Tanpa kategori') AS category,
+        events.start_date,
+        COALESCE(events.view_count, 0) AS view_count,
+        COUNT(DISTINCT event_likes.id) AS total_likes,
+        COUNT(DISTINCT event_favourites.id) AS total_favourites
+    FROM events
+    LEFT JOIN categories ON categories.id = events.category_id
+    LEFT JOIN event_likes ON event_likes.event_id = events.id
+    LEFT JOIN event_favourites ON event_favourites.event_id = events.id
+    WHERE events.user_id = ?
+    GROUP BY events.id, events.title, categories.name, events.start_date, events.view_count
+    ORDER BY events.start_date DESC, events.id DESC
+    LIMIT ? OFFSET ?
+    "
+);
+
+if ($stmtDashboardEvents) {
+    mysqli_stmt_bind_param($stmtDashboardEvents, 'iii', $currentAdminId, $dashboardEventPerPage, $dashboardEventOffset);
+    mysqli_stmt_execute($stmtDashboardEvents);
+    $dashboardEventsResult = mysqli_stmt_get_result($stmtDashboardEvents);
+
+    if ($dashboardEventsResult) {
+        while ($event = mysqli_fetch_assoc($dashboardEventsResult)) {
+            $dashboardEvents[] = $event;
+        }
+    }
+
+    mysqli_stmt_close($stmtDashboardEvents);
+}
 ?>
 
 <!DOCTYPE html>
@@ -218,7 +290,7 @@ $trendLabel = '~ ' . $trendPrefix . abs((int) round($trendPercentage)) . '%';
             <div class="overview-card__header">
               <div>
                 <h3 class="overview-card__name">Performa Event</h3>
-                <p class="overview-card__period">30 Hari Terakhir</p>
+                <p class="overview-card__period"></p>
               </div>
               <div class="overview-card__metric">
                 <span class="overview-card__value"><?= number_format($likesLast30Days) ?></span>
@@ -235,6 +307,57 @@ $trendLabel = '~ ' . $trendPrefix . abs((int) round($trendPercentage)) . '%';
               </div>
             </div>
           </div>
+        </section>
+
+        <section class="dashboard-table-section" aria-labelledby="dashboard-events-title">
+          <h2 class="overview-title" id="dashboard-events-title">Daftar Event</h2>
+          <div class="events-table-wrap">
+            <table class="events-table dashboard-events-table">
+              <thead>
+                <tr>
+                  <th class="col-number">No</th>
+                  <th class="col-title">Event Name</th>
+                  <th class="col-category">Category</th>
+                  <th class="col-date">Date</th>
+                  <th class="col-metric">Views</th>
+                  <th class="col-metric">Likes</th>
+                  <th class="col-metric">Favorit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php if (! empty($dashboardEvents)): ?>
+                  <?php $rowNumber = (($dashboardEventPage - 1) * $dashboardEventPerPage) + 1; ?>
+                  <?php foreach ($dashboardEvents as $event): ?>
+                    <tr>
+                      <td class="events-table__muted col-number"><?= $rowNumber++ ?></td>
+                      <td class="col-title"><?= htmlspecialchars($event['title']) ?></td>
+                      <td class="col-category">
+                        <span class="category-badge"><?= htmlspecialchars($event['category']) ?></span>
+                      </td>
+                      <td class="events-table__muted col-date"><?= htmlspecialchars(date('Y-m-d', strtotime($event['start_date']))) ?></td>
+                      <td class="events-table__muted col-metric"><?= number_format((int) $event['view_count']) ?></td>
+                      <td class="events-table__muted col-metric"><?= number_format((int) $event['total_likes']) ?></td>
+                      <td class="events-table__muted col-metric"><?= number_format((int) $event['total_favourites']) ?></td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <tr>
+                    <td class="empty-state" colspan="7">Belum ada data event.</td>
+                  </tr>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+
+          <?php if ($totalDashboardEventPages > 1): ?>
+            <nav class="admin-pagination" aria-label="Pagination event dashboard">
+              <a class="admin-pagination__link<?= $dashboardEventPage <= 1 ? ' is-disabled' : '' ?>" href="<?= $dashboardEventPage <= 1 ? '#' : htmlspecialchars(buildDashboardEventPaginationUrl($dashboardEventPage - 1)) ?>">Previous</a>
+              <?php for ($page = 1; $page <= $totalDashboardEventPages; $page++): ?>
+                <a class="admin-pagination__link<?= $page === $dashboardEventPage ? ' is-active' : '' ?>" href="<?= htmlspecialchars(buildDashboardEventPaginationUrl($page)) ?>"><?= $page ?></a>
+              <?php endfor; ?>
+              <a class="admin-pagination__link<?= $dashboardEventPage >= $totalDashboardEventPages ? ' is-disabled' : '' ?>" href="<?= $dashboardEventPage >= $totalDashboardEventPages ? '#' : htmlspecialchars(buildDashboardEventPaginationUrl($dashboardEventPage + 1)) ?>">Next</a>
+            </nav>
+          <?php endif; ?>
         </section>
       </main>
     </div>

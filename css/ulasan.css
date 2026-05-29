@@ -1,0 +1,103 @@
+@import url("event.css");
+
+.reviews-toolbar {
+  grid-template-columns: minmax(240px, 1.8fr) minmax(180px, 1fr) auto;
+}
+
+.reviews-table {
+  min-width: 1120px;
+}
+
+.review-text {
+  color: #344054;
+  line-height: 1.55;
+}
+
+.review-meta {
+  margin-top: 6px;
+  color: #98a2b3;
+  font-size: 12px;
+}
+
+.review-rating {
+  color: #d09b57;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.reply-form {
+  display: grid;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.reply-field {
+  min-height: 82px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  resize: vertical;
+}
+
+.reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.reply-empty {
+  color: #98a2b3;
+  font-size: 13px;
+}
+
+.col-review-event {
+  width: 18%;
+}
+
+.col-review-user {
+  width: 16%;
+}
+
+.col-review-rating {
+  width: 96px;
+}
+
+.col-review-text {
+  width: 25%;
+}
+
+.col-review-reply {
+  width: 26%;
+}
+
+.col-review-actions {
+  width: 120px;
+}
+
+@media (max-width: 760px) {
+  .reviews-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .reviews-table {
+    min-width: 960px;
+  }
+
+  .reply-form {
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 600px) {
+  .reviews-table {
+    min-width: 860px;
+  }
+
+  .reply-actions {
+    align-items: stretch;
+  }
+
+  .reply-actions .admin-button {
+    width: 100%;
+  }
+}

@@ -169,8 +169,56 @@ body {
   height: 1px;
   left: calc(50% - 462px);
   position: absolute;
-  top: 883px;
+  top: 913px;
   width: 921px;
+}
+
+.frame-96--events-0 {
+  height: 90px;
+  min-height: 90px;
+}
+
+.frame-96--events-1 {
+  height: 420px;
+  min-height: 420px;
+}
+
+.frame-96--events-2 {
+  height: 670px;
+  min-height: 670px;
+}
+
+.populer--events-0 {
+  height: 90px;
+}
+
+.populer--events-1 {
+  height: 420px;
+}
+
+.populer--events-2 {
+  height: 670px;
+}
+
+.populer--events-0 .line-vertical,
+.populer--events-0 .line-bottom {
+  display: none;
+}
+
+.populer--events-1 .line-vertical {
+  height: 230px;
+}
+
+.populer--events-1 .line-bottom {
+  top: 405px;
+}
+
+.populer--events-2 .line-vertical {
+  height: 500px;
+}
+
+.populer--events-2 .line-bottom {
+  top: 655px;
 }
 
 .event-title {
@@ -207,7 +255,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   transform: rotate(45deg);
+}
+
+.placeholder-box img {
+  width: 140%;
+  height: 140%;
+  flex: 0 0 140%;
+  object-fit: cover;
+  object-position: center;
+  transform: rotate(-45deg);
 }
 
 .full-stop {
@@ -227,9 +285,6 @@ body {
   width: 250px;
   height: 250px;
 }
-.box1 img {
-  transform: rotate(-45deg);
-}
 
 .box2 {
   left: 400px;
@@ -237,18 +292,12 @@ body {
   width: 160px;
   height: 160px;
 }
-.box2 img {
-  transform: rotate(-45deg);
-}
 
 .box3 {
   left: 200px;
   top: 211px;
   width: 140px;
   height: 140px;
-}
-.box3 img {
-  transform: rotate(-45deg);
 }
 
 .event1-title {
@@ -292,9 +341,6 @@ body {
   width: 250px;
   height: 250px;
 }
-.box4 img {
-  transform: rotate(-45deg);
-}
 
 .box5 {
   left: 730px;
@@ -302,18 +348,12 @@ body {
   width: 160px;
   height: 160px;
 }
-.box5 img {
-  transform: rotate(-45deg);
-}
 
 .box6 {
   left: 931px;
   top: 458px;
   width: 140px;
   height: 140px;
-}
-.box6 img {
-  transform: rotate(-45deg);
 }
 
 .event2-title {
@@ -356,9 +396,6 @@ body {
   top: 616px;
   width: 220px;
   height: 220px;
-}
-.box7 img {
-  transform: rotate(-45deg);
 }
 
 .event3-title {
@@ -627,22 +664,22 @@ body {
   .event-description,
   .full-stop {
     position: static;
-    transform: none;
   }
 
   .placeholder-box {
-    width: 100% !important;
-    height: 200px !important;
-    margin: 0 0 15px 0 !important;
+    width: min(62vw, 210px) !important;
+    height: min(62vw, 210px) !important;
+    margin: 20px 0 35px 0 !important;
     left: auto !important;
     top: auto !important;
   }
 
   .placeholder-box img {
-    transform: none !important;
-    width: 100%;
-    height: 100%;
+    width: 140%;
+    height: 140%;
     object-fit: cover;
+    object-position: center;
+    transform: rotate(-45deg);
   }
 
   /* Event 1 */
@@ -653,7 +690,7 @@ body {
   }
 
   .box1 {
-    display: block;
+    display: flex;
   }
 
   .event1-title,
@@ -718,12 +755,12 @@ body {
   }
 
   .box4 {
-    display: block;
+    display: flex;
   }
 
   /* Event 3 */
   .box7 {
-    display: block;
+    display: flex;
   }
 
   /* Event Yang Akan Datang */
@@ -753,5 +790,66 @@ body {
 
   .tanggal {
     font-size: 0.85rem;
+  }
+}
+
+@media screen and (max-width: 900px) and (min-width: 601px) {
+  .hero {
+    height: 58vh;
+    min-height: 420px;
+    background-size: cover;
+    background-position: center;
+    padding: 0 40px;
+  }
+
+  .hero h2 {
+    font-size: 36px;
+    line-height: 1.2;
+    margin-top: -30px;
+  }
+
+  .hero p {
+    font-size: 18px;
+    line-height: 1.5;
+  }
+
+  .kategori-event {
+    margin-top: 64px;
+    margin-bottom: 70px;
+    padding: 0 40px;
+  }
+
+  .kategori-event ul {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px 28px;
+  }
+
+  .frame-96 {
+    min-height: auto;
+    height: auto;
+    padding-bottom: 40px;
+  }
+
+  .populer {
+    transform: translateX(-50%) scale(0.62);
+    transform-origin: top center;
+    margin-bottom: -300px;
+  }
+
+  .eventakandatang {
+    margin-left: 40px;
+    margin-top: 64px;
+    font-size: 24px;
+  }
+
+  .event-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 40px;
+    gap: 18px;
+  }
+
+  .event-card {
+    height: 320px;
   }
 }

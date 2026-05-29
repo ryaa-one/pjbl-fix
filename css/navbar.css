@@ -191,9 +191,9 @@ nav ul li a {
 /* ========================================
    RESPONSIVE DESIGN - MOBILE (≤600px)
    ======================================== */
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 900px) {
   header {
-    padding: 15px 20px;
+    padding: 16px 24px;
   }
 
   .EvenTura {
@@ -282,5 +282,15 @@ nav ul li a {
     padding: 15px;
     font-size: 15px;
     text-align: center;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  header {
+    padding: 15px 20px;
+  }
+
+  nav {
+    padding: 80px 24px 30px;
   }
 }

@@ -1,5 +1,8 @@
 <?php
 include 'config/database.php';
+include_once 'includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 function formatPopularEventDateRange(?string $startDate, ?string $endDate): string
 {
@@ -12,6 +15,37 @@ function formatPopularEventDateRange(?string $startDate, ?string $endDate): stri
   }
 
   return $startDate;
+}
+
+function getIndexEventImage(array $event): string
+{
+  return !empty($event['thumnail']) ? $event['thumnail'] : 'assets/images/gambar-tk1.png';
+}
+
+function buildIndexEventDescription(?string $description, int $limit = 210): string
+{
+  $text = trim(strip_tags((string) $description));
+
+  if ($text === '') {
+    return 'Deskripsi event belum tersedia.';
+  }
+
+  if (strlen($text) <= $limit) {
+    return $text;
+  }
+
+  return rtrim(substr($text, 0, $limit), " \t\n\r\0\x0B.,") . '...';
+}
+
+function getIndexEventViewColumn($koneksi): string
+{
+  $resultViews = mysqli_query($koneksi, "SHOW COLUMNS FROM events LIKE 'views'");
+
+  if ($resultViews && mysqli_num_rows($resultViews) > 0) {
+    return 'views';
+  }
+
+  return 'view_count';
 }
 
 function buildIndexCategoryUrl(int $categoryId): string
@@ -43,27 +77,20 @@ if ($resultIndexCategories) {
 }
 
 $popularEvents = [];
+$popularEventViewColumn = getIndexEventViewColumn($koneksi);
 $queryPopularEvents = "
   SELECT
-    events.id,
-    events.title,
-    events.start_date,
-    events.end_date,
-    events.thumnail,
+    events.*,
     COALESCE(categories.name, 'Tanpa kategori') AS category_name,
-    COUNT(event_likes.id) AS total_likes
-  FROM events
+    events.{$popularEventViewColumn} AS total_views
+  FROM (
+    SELECT *
+    FROM events
+    ORDER BY {$popularEventViewColumn} DESC, id DESC
+    LIMIT 3
+  ) AS events
   LEFT JOIN categories ON events.category_id = categories.id
-  LEFT JOIN event_likes ON event_likes.event_id = events.id
-  GROUP BY
-    events.id,
-    events.title,
-    events.start_date,
-    events.end_date,
-    events.thumnail,
-    categories.name
-  ORDER BY total_likes DESC, events.id DESC
-  LIMIT 3
+  ORDER BY events.{$popularEventViewColumn} DESC, events.id DESC
 ";
 
 $resultPopularEvents = mysqli_query($koneksi, $queryPopularEvents);
@@ -72,6 +99,38 @@ if ($resultPopularEvents) {
     $popularEvents[] = $event;
   }
 }
+
+$popularEventCount = min(count($popularEvents), 3);
+
+$popularSectionLayouts = [
+  [
+    'boxes' => ['box1', 'box2', 'box3'],
+    'title' => 'event1-title',
+    'line' => 'event1-line',
+    'desc' => 'event1-desc',
+    'stop_desc' => 'stop1',
+    'detail' => 'event1-detail',
+    'stop_detail' => 'stop2',
+  ],
+  [
+    'boxes' => ['box4', 'box5', 'box6'],
+    'title' => 'event2-title',
+    'line' => 'event2-line',
+    'desc' => 'event2-desc',
+    'stop_desc' => 'stop3',
+    'detail' => 'event2-detail',
+    'stop_detail' => 'stop4',
+  ],
+  [
+    'boxes' => ['box7'],
+    'title' => 'event3-title',
+    'line' => 'event3-line',
+    'desc' => 'event3-desc',
+    'stop_desc' => 'stop5',
+    'detail' => 'event3-detail',
+    'stop_detail' => 'stop6',
+  ],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,86 +178,44 @@ if ($resultPopularEvents) {
       </ul>
     </div>
 
-    <div class="frame-96">
-      <div class="populer">
+    <div class="frame-96 frame-96--events-<?= $popularEventCount ?>">
+      <div class="populer populer--events-<?= $popularEventCount ?>">
         <!-- Header -->
         <h1 class="title">POPULER</h1>
         <div class="line-horizontal line-left"></div>
         <div class="line-horizontal line-right"></div>
         <div class="line-vertical"></div>
 
-        <!-- Event 1: Tari Kecak -->
-        <div class="placeholder-box box1">
-          <img src="assets/images/gambar-tk1.png" />
-        </div>
-        <div class="placeholder-box box2">
-          <img src="assets/images/gambar-tk2.png" />
-        </div>
-        <div class="placeholder-box box3">
-          <img src="assets/images/gambar-tk3.png" />
-        </div>
+        <?php foreach ($popularEvents as $index => $event): ?>
+          <?php
+            $layout = $popularSectionLayouts[$index];
+            $eventImage = getIndexEventImage($event);
+            $eventDate = formatPopularEventDateRange($event['start_date'] ?? null, $event['end_date'] ?? null);
+            $eventLocation = !empty($event['location']) ? $event['location'] : 'Lokasi belum tersedia';
+          ?>
+          <?php foreach ($layout['boxes'] as $boxClass): ?>
+            <div class="placeholder-box <?= htmlspecialchars($boxClass) ?>">
+              <img
+                src="<?= htmlspecialchars($eventImage) ?>"
+                alt="<?= htmlspecialchars($event['title']) ?>"
+              />
+            </div>
+          <?php endforeach; ?>
 
-        <div class="event-title event1-title">Event Tari Kecak</div>
-        <div class="event-line event1-line"></div>
-        <p class="event-description event1-desc">
-          drama tari yang mementaskan kisah epos Ramayana dengan alunan suara
-          "cak" dari puluhan penari laki-laki sebagai musik pengiring utama, dan
-          diiringi gerakan serta tarian yang memukau.
-        </p>
-        <div class="full-stop stop1"></div>
-        <p class="event-description event1-detail">
-          Festival ini dilaksanan setiap hari dengan dua sesi pertunjukkan:
-          pukul 18:00-19:00 dan pukul 19:00-20:00 WITA.<br />
-          Lokasi paling populernya di Pura Uluwatu.
-        </p>
-        <div class="full-stop stop2"></div>
-
-        <!-- Event 2: Sawahlunto International Music Festival -->
-        <div class="placeholder-box box4">
-          <img src="assets/images/gambar-simf1.png" />
-        </div>
-        <div class="placeholder-box box5">
-          <img src="assets/images/gambar-simf2.png" />
-        </div>
-        <div class="placeholder-box box6">
-          <img src="assets/images/gambar-simf3.png" />
-        </div>
-
-        <div class="event-title event2-title">
-          Sawahlunto International Music Festival
-        </div>
-        <div class="event-line event2-line"></div>
-        <p class="event-description event2-desc">
-          festival musik etnik, modern, dan kontemporer, sebagai bagian dari
-          perayaan ulang tahun kota dan upaya mempromosikan Sawahlunto sebagai
-          kota warisan dunia.
-        </p>
-        <div class="full-stop stop3"></div>
-        <p class="event-description event2-detail">
-          Festival ini dilaksanakan pada tanggal 10-11 Oktober 2025, yang
-          bertempat di Kota Sawahlunto, Sumatera Barat
-        </p>
-        <div class="full-stop stop4"></div>
-
-        <!-- Event 3: Art Jog -->
-        <div class="placeholder-box box7">
-          <img src="assets/images/gambar-aj1.png" />
-        </div>
-
-        <div class="event-title event3-title">Art Jog</div>
-        <div class="event-line event3-line"></div>
-        <p class="event-description event3-desc">
-          festival seni rupa kontemporer tahunan internasional yang berfungsi
-          sebagai pameran seni, ruang berbagi pengetahuan dan estetika, serta
-          ajang untuk mempertemukan seniman, publik, dan berbagai pemangku
-          kebijakan.
-        </p>
-        <div class="full-stop stop5"></div>
-        <p class="event-description event3-detail">
-          Festival ini dilaksanakan pada tanggal 10-11 Oktober 2025, yang
-          bertempat di Kota Sawahlunto, Sumatera Barat
-        </p>
-        <div class="full-stop stop6"></div>
+          <div class="event-title <?= htmlspecialchars($layout['title']) ?>">
+            <?= htmlspecialchars($event['title']) ?>
+          </div>
+          <div class="event-line <?= htmlspecialchars($layout['line']) ?>"></div>
+          <p class="event-description <?= htmlspecialchars($layout['desc']) ?>">
+            <?= htmlspecialchars(buildIndexEventDescription($event['description'] ?? null)) ?>
+          </p>
+          <div class="full-stop <?= htmlspecialchars($layout['stop_desc']) ?>"></div>
+          <p class="event-description <?= htmlspecialchars($layout['detail']) ?>">
+            <?= htmlspecialchars($eventDate) ?><br />
+            <?= htmlspecialchars($eventLocation) ?>
+          </p>
+          <div class="full-stop <?= htmlspecialchars($layout['stop_detail']) ?>"></div>
+        <?php endforeach; ?>
 
         <!-- Bottom Line -->
         <div class="line-bottom"></div>
@@ -210,7 +227,7 @@ if ($resultPopularEvents) {
       <?php foreach ($popularEvents as $event): ?>
         <div class="event-card">
           <img
-            src="<?= htmlspecialchars(!empty($event['thumnail']) ? $event['thumnail'] : 'assets/images/gambar-tk1.png') ?>"
+            src="<?= htmlspecialchars(getIndexEventImage($event)) ?>"
             alt="<?= htmlspecialchars($event['title']) ?>"
             class="gambar"
           />

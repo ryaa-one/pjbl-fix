@@ -5,8 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 
 include 'config/database.php';
 include_once 'includes/event_metrics.php';
+include_once 'includes/user_social.php';
 
 ensureEventMetricsColumns($koneksi);
+ensureUserSocialColumns($koneksi);
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $currentUserId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
@@ -19,6 +21,7 @@ if ($eventId <= 0) {
 $queryEvent = "
   SELECT
     events.id,
+    events.user_id,
     events.title,
     events.description,
     events.start_date,
@@ -26,11 +29,14 @@ $queryEvent = "
     events.location,
     events.thumnail,
     events.gallery_carousel,
+    event_admin.whatsapp AS admin_whatsapp,
+    event_admin.instagram AS admin_instagram,
     COALESCE(categories.name, 'Tanpa kategori') AS category,
     COALESCE(cities.name, '-') AS city
   FROM events
   LEFT JOIN categories ON events.category_id = categories.id
   LEFT JOIN cities ON events.city_id = cities.id
+  LEFT JOIN users AS event_admin ON events.user_id = event_admin.id
   WHERE events.id = ?
   LIMIT 1
 ";
@@ -153,6 +159,12 @@ if (!empty($event['end_date']) && $event['end_date'] !== $event['start_date']) {
   $eventDateLabel .= ' - ' . $event['end_date'];
 }
 
+$adminWhatsapp = normalizeWhatsappNumber($event['admin_whatsapp'] ?? '');
+$adminInstagram = normalizeInstagramUsername($event['admin_instagram'] ?? '');
+$adminWhatsappUrl = $adminWhatsapp !== '' ? 'https://wa.me/' . $adminWhatsapp : '';
+$adminInstagramUrl = $adminInstagram !== '' ? 'https://instagram.com/' . rawurlencode($adminInstagram) : '';
+$isEventOwner = $currentUserId > 0 && (int) $event['user_id'] === $currentUserId;
+
 function renderStars($rating)
 {
   $rating = max(1, min(5, (int) $rating));
@@ -221,7 +233,31 @@ function formatReviewDate($value)
       <p><?= nl2br(htmlspecialchars($event['description'])) ?></p>
     </div>
     <div class="sidebar">
-      <?php if ($currentUserId > 0): ?>
+      <?php if ($adminWhatsappUrl !== ''): ?>
+        <a
+          class="btn btn-whatsapp<?= $currentUserId <= 0 ? ' js-login-required-trigger' : '' ?>"
+          href="<?= $currentUserId > 0 ? htmlspecialchars($adminWhatsappUrl) : 'login.php' ?>"
+          <?= $currentUserId > 0 ? 'target="_blank" rel="noopener noreferrer"' : 'data-login-message="Login diperlukan untuk menghubungi admin melalui WhatsApp."' ?>
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-whatsapp.png" alt="" />
+          </span>
+          <span class="btn-label">WhatsApp</span>
+        </a>
+      <?php endif; ?>
+      <?php if ($adminInstagramUrl !== ''): ?>
+        <a
+          class="btn btn-instagram<?= $currentUserId <= 0 ? ' js-login-required-trigger' : '' ?>"
+          href="<?= $currentUserId > 0 ? htmlspecialchars($adminInstagramUrl) : 'login.php' ?>"
+          <?= $currentUserId > 0 ? 'target="_blank" rel="noopener noreferrer"' : 'data-login-message="Login diperlukan untuk membuka Instagram admin."' ?>
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-instagram.png" alt="" />
+          </span>
+          <span class="btn-label">Instagram</span>
+        </a>
+      <?php endif; ?>
+      <?php if ($currentUserId > 0 && ! $isEventOwner): ?>
         <button
           class="btn btn-fav<?= $isFavorited ? ' is-active' : '' ?>"
           id="favoriteButton"
@@ -230,7 +266,12 @@ function formatReviewDate($value)
           data-active-label="Hapus dari Favorit"
           data-inactive-label="Tambahkan ke Favorit"
           aria-pressed="<?= $isFavorited ? 'true' : 'false' ?>"
-        ><?= $isFavorited ? 'Hapus dari Favorit' : 'Tambahkan ke Favorit' ?></button>
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-favorit.png" alt="" />
+          </span>
+          <span class="btn-label"><?= $isFavorited ? 'Hapus dari Favorit' : 'Tambahkan ke Favorit' ?></span>
+        </button>
         <button
           class="btn btn-like<?= $isLiked ? ' is-active' : '' ?>"
           id="likeButton"
@@ -239,22 +280,44 @@ function formatReviewDate($value)
           data-active-label="Batalkan Suka"
           data-inactive-label="Sukai"
           aria-pressed="<?= $isLiked ? 'true' : 'false' ?>"
-        ><?= $isLiked ? 'Batalkan Suka' : 'Sukai' ?></button>
-        <button class="btn btn-share" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="18" cy="5" r="3"></circle>
-            <circle cx="6" cy="12" r="3"></circle>
-            <circle cx="18" cy="19" r="3"></circle>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-          </svg>
-          Bagikan
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-sukai.png" alt="" />
+          </span>
+          <span class="btn-label"><?= $isLiked ? 'Batalkan Suka' : 'Sukai' ?></span>
         </button>
         <p class="sidebar-feedback" id="sidebarFeedback" aria-live="polite"></p>
-      <?php else: ?>
-        <div class="review-login-card review-login-card--sidebar">
-          <p class="review-login-text">Login diperlukan untuk menyimpan event ke favorit atau daftar suka.</p>
-          <a class="review-login-button" href="login.php">Login untuk menyimpan event</a>
+      <?php elseif ($currentUserId <= 0): ?>
+        <button
+          class="btn btn-fav js-login-required-trigger"
+          type="button"
+          data-login-message="Login diperlukan untuk menyimpan event ke favorit."
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-favorit.png" alt="" />
+          </span>
+          <span class="btn-label">Tambahkan ke Favorit</span>
+        </button>
+        <button
+          class="btn btn-like js-login-required-trigger"
+          type="button"
+          data-login-message="Login diperlukan untuk menyukai event ini."
+        >
+          <span class="btn-icon" aria-hidden="true">
+            <img src="assets/images/logo-sukai.png" alt="" />
+          </span>
+          <span class="btn-label">Sukai</span>
+        </button>
+        <div class="login-required-card login-required-card--sidebar" id="loginRequiredCard" aria-live="polite" hidden>
+          <div class="login-required-icon" aria-hidden="true">
+            <span>!</span>
+          </div>
+          <div class="login-required-content">
+            <span class="login-required-badge">Akses akun</span>
+            <h3 class="login-required-title">Login diperlukan</h3>
+            <p class="login-required-text" id="loginRequiredMessage">Login diperlukan untuk menggunakan fitur ini.</p>
+          </div>
+          <a class="login-required-button" href="login.php">Masuk ke akun</a>
         </div>
       <?php endif; ?>
     </div>
@@ -273,12 +336,22 @@ function formatReviewDate($value)
     </div>
     <div class="info-boxes">
       <div class="info-box">
-        <h3><span class="info-icon">◷</span>Tanggal & Waktu</h3>
+        <h3>
+          <span class="info-icon" aria-hidden="true">
+            <img src="assets/images/logo-kalender.png" alt="" />
+          </span>
+          <span>Tanggal & Waktu</span>
+        </h3>
         <p><strong><?= htmlspecialchars($eventDateLabel) ?></strong></p>
         <p class="info-highlight"><?= htmlspecialchars($event['category']) ?></p>
       </div>
       <div class="info-box">
-        <h3><span class="info-icon">◉</span>Lokasi</h3>
+        <h3>
+          <span class="info-icon" aria-hidden="true">
+            <img src="assets/images/logo-location.png" alt="" />
+          </span>
+          <span>Lokasi</span>
+        </h3>
         <p><strong><?= htmlspecialchars($event['location']) ?></strong></p>
         <p><?= htmlspecialchars($event['city']) ?></p>
       </div>
@@ -429,7 +502,12 @@ function formatReviewDate($value)
           const isActive = Boolean(result.is_active);
           button.classList.toggle('is-active', isActive);
           button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          button.textContent = isActive ? button.dataset.activeLabel : button.dataset.inactiveLabel;
+          const buttonLabel = button.querySelector('.btn-label');
+          if (buttonLabel) {
+            buttonLabel.textContent = isActive ? button.dataset.activeLabel : button.dataset.inactiveLabel;
+          } else {
+            button.textContent = isActive ? button.dataset.activeLabel : button.dataset.inactiveLabel;
+          }
 
           if (sidebarFeedback) {
             sidebarFeedback.textContent = result.message;
@@ -459,6 +537,27 @@ function formatReviewDate($value)
           toggleEventState(likeButton, 'process/toggleLike.php');
         });
       }
+    }
+
+    if (!isLoggedIn) {
+      const loginRequiredCard = document.getElementById('loginRequiredCard');
+      const loginRequiredMessage = document.getElementById('loginRequiredMessage');
+
+      document.querySelectorAll('.js-login-required-trigger').forEach((trigger) => {
+        trigger.addEventListener('click', (event) => {
+          event.preventDefault();
+
+          if (loginRequiredMessage && trigger.dataset.loginMessage) {
+            loginRequiredMessage.textContent = trigger.dataset.loginMessage;
+          }
+
+          if (loginRequiredCard) {
+            loginRequiredCard.hidden = false;
+            loginRequiredCard.classList.add('is-visible');
+            loginRequiredCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
     }
 
     if (isLoggedIn) {

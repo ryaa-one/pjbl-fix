@@ -192,6 +192,7 @@
 @media (max-width: 760px) {
   .admin-toolbar {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .events-table {
@@ -202,6 +203,10 @@
     min-width: 0;
     width: 100%;
   }
+
+  .admin-pagination {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 600px) {
@@ -211,5 +216,15 @@
 
   .table-actions {
     gap: 8px;
+  }
+
+  .events-table th,
+  .events-table td {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .category-badge {
+    font-size: 12px;
   }
 }

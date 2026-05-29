@@ -46,7 +46,7 @@ if (strpos($_SERVER['PHP_SELF'], '/akun/') !== false) {
             <img src="<?= $path_prefix ?>assets/images/vector-twit.png" alt="Twitter" />
         </div>
         <div class="kanan-bawah">
-            <p>© 2024 Island Events. All rights reserved.</p>
+            <p>© 2026 EvenTura.</p>
         </div>
     </div>
 </section>

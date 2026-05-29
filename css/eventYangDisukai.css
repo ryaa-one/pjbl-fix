@@ -178,9 +178,19 @@ a {
     flex-direction: column;
     padding: 30px;
   }
+  .card-profil {
+    align-self: center;
+  }
   .container {
     margin-left: 0;
     width: 100%;
+  }
+  .navigation {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-item {
+    flex: 0 0 auto;
   }
   .card-container {
     justify-content: center;
@@ -191,6 +201,7 @@ a {
   }
   .card-image {
     height: auto;
+    aspect-ratio: 4 / 5;
   }
 }
 
@@ -217,15 +228,23 @@ a {
   }
   .navigation {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-x: auto;
   }
   .nav-item {
+    flex: 0 0 auto;
     margin-right: 0;
     padding: 10px;
     border-bottom: none;
   }
+  .section-title {
+    font-size: 24px;
+    padding-bottom: 8px;
+  }
   .card-container {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 20px;
   }
   .card {
@@ -233,7 +252,7 @@ a {
     height: auto;
   }
   .card-image {
-    height: auto;
+    height: 220px;
   }
   .footer-atas,
   .footer-bawah {

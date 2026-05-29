@@ -5,6 +5,7 @@ include '../../config/database.php';
 include '../../process/category.php';
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $errors = [];
 
 if ($eventId <= 0) {
@@ -28,12 +29,13 @@ $queryEvent = "
     FROM events
     LEFT JOIN categories ON events.category_id = categories.id
     WHERE events.id = ?
+      AND events.user_id = ?
     LIMIT 1
 ";
 
 $stmtEvent = mysqli_prepare($koneksi, $queryEvent);
 if ($stmtEvent) {
-    mysqli_stmt_bind_param($stmtEvent, 'i', $eventId);
+    mysqli_stmt_bind_param($stmtEvent, 'ii', $eventId, $currentAdminId);
     mysqli_stmt_execute($stmtEvent);
     $execEvent = mysqli_stmt_get_result($stmtEvent);
     $event = $execEvent ? mysqli_fetch_assoc($execEvent) : null;
@@ -75,6 +77,53 @@ $formData = [
 
 $uploadDir = '../../assets/uploads/events/';
 $uploadUrlBase = 'assets/uploads/events/';
+
+function decodeEventGallery($galleryValue, string $thumbnail = ''): array
+{
+    $decodedGallery = json_decode((string) $galleryValue, true);
+    if (!is_array($decodedGallery)) {
+        $decodedGallery = [];
+    }
+
+    $images = array_values(array_filter($decodedGallery, fn($item) => is_string($item) && trim($item) !== ''));
+    if (empty($images) && $thumbnail !== '') {
+        $images[] = $thumbnail;
+    }
+
+    return $images;
+}
+
+function getIndexedUploadFile(array $files, int $index): array
+{
+    return [
+        'name' => $files['name'][$index] ?? '',
+        'tmp_name' => $files['tmp_name'][$index] ?? '',
+        'error' => $files['error'][$index] ?? UPLOAD_ERR_NO_FILE,
+    ];
+}
+
+function deleteEventImageFile(string $imagePath, string $uploadDir, string $uploadUrlBase): void
+{
+    $imagePath = trim($imagePath);
+    if ($imagePath === '' || strpos($imagePath, $uploadUrlBase) !== 0) {
+        return;
+    }
+
+    $uploadRoot = realpath($uploadDir);
+    if ($uploadRoot === false) {
+        return;
+    }
+
+    $fileName = basename(parse_url($imagePath, PHP_URL_PATH) ?: $imagePath);
+    if ($fileName === '' || $fileName === '.' || $fileName === '..') {
+        return;
+    }
+
+    $targetPath = $uploadRoot . DIRECTORY_SEPARATOR . $fileName;
+    if (is_file($targetPath)) {
+        unlink($targetPath);
+    }
+}
 
 function uploadEventImage(array $file, string $uploadDir, string $uploadUrlBase): ?string
 {
@@ -135,7 +184,13 @@ function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBas
     return $uploaded;
 }
 
+$currentGalleryImages = decodeEventGallery($formData['gallery_carousel'], $formData['thumnail']);
+$originalGallerySet = array_fill_keys($currentGalleryImages, true);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $uploadedImages = [];
+    $oldImagesToDelete = [];
+
     $formData['title'] = trim($_POST['title'] ?? '');
     $formData['description'] = trim($_POST['description'] ?? '');
     $formData['category_name'] = normalizeCategoryName($_POST['category_name'] ?? '');
@@ -144,7 +199,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $formData['end_date'] = trim($_POST['end_date'] ?? '');
     $formData['location'] = trim($_POST['location'] ?? '');
     $formData['thumnail'] = trim($_POST['thumnail'] ?? '');
-    $formData['gallery_carousel'] = trim($_POST['gallery_carousel'] ?? '[]');
 
     if ($formData['title'] === '') {
         $errors[] = "Nama event wajib diisi.";
@@ -175,20 +229,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $uploadedImages = uploadEventImages($_FILES['event_images'] ?? [], $uploadDir, $uploadUrlBase);
-        $submittedGallery = json_decode($formData['gallery_carousel'], true);
+        $submittedGallery = $_POST['gallery_existing'] ?? [];
         if (!is_array($submittedGallery)) {
             $submittedGallery = [];
         }
 
-        $finalImages = array_values(array_filter(array_merge($uploadedImages, $submittedGallery), fn($item) => is_string($item) && trim($item) !== ''));
+        $deleteIndexes = $_POST['gallery_delete'] ?? [];
+        if (!is_array($deleteIndexes)) {
+            $deleteIndexes = [];
+        }
+
+        $replacementFiles = $_FILES['gallery_replace'] ?? [];
+        $managedImages = [];
+
+        foreach ($submittedGallery as $index => $imagePath) {
+            $imagePath = trim((string) $imagePath);
+            if ($imagePath === '' || !isset($originalGallerySet[$imagePath])) {
+                continue;
+            }
+
+            $galleryIndex = (int) $index;
+            if (isset($deleteIndexes[$galleryIndex])) {
+                $oldImagesToDelete[] = $imagePath;
+                continue;
+            }
+
+            $replacementPath = uploadEventImage(getIndexedUploadFile($replacementFiles, $galleryIndex), $uploadDir, $uploadUrlBase);
+            if ($replacementPath !== null) {
+                $uploadedImages[] = $replacementPath;
+                $oldImagesToDelete[] = $imagePath;
+                $managedImages[] = $replacementPath;
+                continue;
+            }
+
+            $managedImages[] = $imagePath;
+        }
+
+        $newGalleryImages = uploadEventImages($_FILES['event_images'] ?? [], $uploadDir, $uploadUrlBase);
+        $uploadedImages = array_merge($uploadedImages, $newGalleryImages);
+        $finalImages = array_values(array_filter(array_merge($managedImages, $newGalleryImages), fn($item) => is_string($item) && trim($item) !== ''));
 
         if (!empty($finalImages)) {
             $formData['thumnail'] = $finalImages[0];
             $formData['gallery_carousel'] = json_encode($finalImages, JSON_UNESCAPED_SLASHES);
-        } elseif ($formData['thumnail'] === '') {
+        } else {
+            $formData['thumnail'] = '';
+            $formData['gallery_carousel'] = '[]';
             $errors[] = "Thumbnail event wajib diupload atau diisi path/URL.";
         }
+
+        $currentGalleryImages = $finalImages;
     }
 
     if (empty($errors)) {
@@ -216,14 +306,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 location = ?,
                 thumnail = ?,
                 gallery_carousel = ?
-            WHERE id = ?
+            WHERE events.id = ?
+              AND events.user_id = ?
         "
         );
 
         if ($stmtUpdateEvent) {
             mysqli_stmt_bind_param(
                 $stmtUpdateEvent,
-                'ssiisssssi',
+                'ssiisssssii',
                 $formData['title'],
                 $formData['description'],
                 $categoryId,
@@ -233,7 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['location'],
                 $formData['thumnail'],
                 $formData['gallery_carousel'],
-                $eventId
+                $eventId,
+                $currentAdminId
             );
 
             $execUpdateEvent = mysqli_stmt_execute($stmtUpdateEvent);
@@ -243,11 +335,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($execUpdateEvent) {
+            $finalImageSet = array_fill_keys($currentGalleryImages, true);
+            foreach (array_unique($oldImagesToDelete) as $imagePath) {
+                if (!isset($finalImageSet[$imagePath])) {
+                    deleteEventImageFile($imagePath, $uploadDir, $uploadUrlBase);
+                }
+            }
+
             header("Location: index.php?status=updated");
             exit();
         }
 
+        foreach ($uploadedImages as $imagePath) {
+            deleteEventImageFile($imagePath, $uploadDir, $uploadUrlBase);
+        }
+
         $errors[] = "Data event gagal diperbarui.";
+    }
+
+    if (!empty($errors) && !empty($uploadedImages)) {
+        foreach ($uploadedImages as $imagePath) {
+            deleteEventImageFile($imagePath, $uploadDir, $uploadUrlBase);
+        }
     }
 }
 ?>
@@ -376,13 +485,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <input class="admin-upload__input" id="thumnail_file" name="event_images[]" type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" multiple />
                 <input type="hidden" name="thumnail" value="<?= htmlspecialchars($formData['thumnail']) ?>" />
-                <input type="hidden" name="gallery_carousel" value="<?= htmlspecialchars($formData['gallery_carousel']) ?>" />
                 <div class="admin-upload__file" id="thumbnail-file-label">
                   <?= $formData['thumnail'] !== '' ? htmlspecialchars($formData['thumnail']) : 'Format yang didukung: JPG, PNG, GIF, WEBP.' ?>
                 </div>
-                <div class="admin-upload__hint">Gambar pertama jadi thumbnail, seluruh gambar disimpan ke gallery carousel.</div>
+                <div class="admin-upload__hint">Gambar baru akan ditambahkan ke gallery setelah gambar lama yang masih aktif.</div>
               </div>
             </div>
+            <?php if (!empty($currentGalleryImages)): ?>
+              <div class="gallery-manager">
+                <div class="gallery-manager__header">
+                  <div>
+                    <h2>Gallery event</h2>
+                    <p>Kelola gambar yang sudah tersimpan. Gambar pertama yang aktif menjadi thumbnail utama.</p>
+                  </div>
+                  <span><?= count($currentGalleryImages) ?> gambar</span>
+                </div>
+                <div class="gallery-manager__grid">
+                  <?php foreach ($currentGalleryImages as $index => $imagePath): ?>
+                    <article class="gallery-manager__item">
+                      <input type="hidden" name="gallery_existing[<?= (int) $index ?>]" value="<?= htmlspecialchars($imagePath) ?>">
+                      <div class="gallery-manager__thumb">
+                        <img src="../../<?= htmlspecialchars($imagePath) ?>" alt="Gallery image <?= (int) $index + 1 ?>">
+                        <?php if ($index === 0): ?>
+                          <span class="gallery-manager__cover">Thumbnail</span>
+                        <?php endif; ?>
+                      </div>
+                      <div class="gallery-manager__body">
+                        <div class="gallery-manager__name"><?= htmlspecialchars(basename($imagePath)) ?></div>
+                        <div class="gallery-manager__actions">
+                          <label class="gallery-manager__replace" for="gallery_replace_<?= (int) $index ?>">
+                            Ganti image
+                          </label>
+                          <input
+                            class="gallery-manager__input"
+                            id="gallery_replace_<?= (int) $index ?>"
+                            name="gallery_replace[<?= (int) $index ?>]"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
+                            data-replace-label="gallery_replace_label_<?= (int) $index ?>"
+                          >
+                          <label class="gallery-manager__delete">
+                            <input type="checkbox" name="gallery_delete[<?= (int) $index ?>]" value="1">
+                            <span>Hapus</span>
+                          </label>
+                        </div>
+                        <div class="gallery-manager__file" id="gallery_replace_label_<?= (int) $index ?>">Belum ada file pengganti.</div>
+                      </div>
+                    </article>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            <?php endif; ?>
             <div class="admin-upload__hint" id="selected-count">Belum ada file dipilih.</div>
           </div>
           <div class="admin-form__actions">
@@ -429,6 +582,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           reader.readAsDataURL(files[0]);
         });
       }
+
+      document.querySelectorAll('.gallery-manager__input').forEach((input) => {
+        input.addEventListener('change', function () {
+          const label = document.getElementById(this.dataset.replaceLabel);
+          const fileName = this.files && this.files[0] ? this.files[0].name : 'Belum ada file pengganti.';
+          if (label) {
+            label.textContent = fileName;
+          }
+        });
+      });
+
+      document.querySelectorAll('.gallery-manager__delete input').forEach((checkbox) => {
+        checkbox.addEventListener('change', function () {
+          const item = this.closest('.gallery-manager__item');
+          if (item) {
+            item.classList.toggle('is-marked-delete', this.checked);
+          }
+        });
+      });
     </script>
 
     <?php include("../../templates/footer.php"); ?>

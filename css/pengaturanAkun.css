@@ -169,9 +169,19 @@ a {
     flex-direction: column;
     padding: 30px;
   }
+  .card-profil {
+    align-self: center;
+  }
   .container {
     margin-left: 0;
     width: 100%;
+  }
+  .navigation {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-item {
+    flex: 0 0 auto;
   }
 }
 
@@ -193,12 +203,18 @@ a {
   }
   .navigation {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-x: auto;
   }
   .nav-item {
+    flex: 0 0 auto;
     margin-right: 0;
     padding: 10px;
     border-bottom: none;
+  }
+  .form-input {
+    font-size: 14px;
   }
   .actions {
     flex-direction: column;
