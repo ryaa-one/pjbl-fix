@@ -164,17 +164,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "
             INSERT INTO events (
                 title, description, category_id, city_id, user_id,
-                start_date, end_date, location, thumnail, gallery_carousel
+                start_date, end_date, location, thumnail, gallery_carousel, view_count, is_favourite
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
         "
         );
 
         if ($stmtCreateEvent) {
+            $viewCount = 0;
+            $isFavourite = 0;
+
             mysqli_stmt_bind_param(
                 $stmtCreateEvent,
-                'ssiiisssss',
+                'ssiiisssssii',
                 $formData['title'],
                 $formData['description'],
                 $categoryId,
@@ -184,7 +187,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $endDate,
                 $formData['location'],
                 $formData['thumnail'],
-                $formData['gallery_carousel']
+                $formData['gallery_carousel'],
+                $viewCount,
+                $isFavourite
             );
 
             $execCreateEvent = mysqli_stmt_execute($stmtCreateEvent);

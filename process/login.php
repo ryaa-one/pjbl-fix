@@ -14,7 +14,9 @@ if (isset($_POST['submit-login'])) {
     checkPassword($password, $user['password']);
     saveUserToSession($user);
 
-    if ($user['level'] == 'admin') {
+    if ($user['level'] == 'super_admin') {
+        header("Location: ../super%20admin/dashboard");
+    } elseif ($user['level'] == 'admin') {
         header("Location: ../admin/dashboard");
     } else {
         header("Location: ../index.php");

@@ -141,6 +141,7 @@ if (! $stmtReview) {
             'rating' => $rating,
             'stars' => str_repeat('★', $rating) . str_repeat('☆', 5 - $rating),
             'created_at_label' => date('d M Y H:i'),
+            'admin_reply' => null,
             'can_delete' => true,
         ],
     ]);
@@ -173,6 +174,7 @@ echo json_encode([
         'rating' => (int) $review['rating'],
         'stars' => str_repeat('★', (int) $review['rating']) . str_repeat('☆', 5 - (int) $review['rating']),
         'created_at_label' => date('d M Y H:i', strtotime((string) $review['created_at'])),
+        'admin_reply' => null,
         'can_delete' => true,
     ],
 ]);

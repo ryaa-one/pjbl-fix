@@ -5,9 +5,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 include 'config/database.php';
 include_once 'includes/event_metrics.php';
+include_once 'includes/review_reply.php';
 include_once 'includes/user_social.php';
 
 ensureEventMetricsColumns($koneksi);
+ensureReviewReplyColumn($koneksi);
 ensureUserSocialColumns($koneksi);
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
@@ -106,6 +108,7 @@ $queryReviews = "
     event_reviews.user_id,
     event_reviews.review_description,
     event_reviews.rating,
+    event_reviews.admin_reply,
     event_reviews.created_at,
     users.name AS user_name
   FROM event_reviews
@@ -407,6 +410,12 @@ function formatReviewDate($value)
               </div>
             </div>
             <p class="review-text"><?= nl2br(htmlspecialchars($review['review_description'])) ?></p>
+            <?php if (! empty($review['admin_reply'])): ?>
+              <div class="review-admin-reply">
+                <p class="review-admin-reply__label">Balasan Admin</p>
+                <p class="review-admin-reply__text"><?= nl2br(htmlspecialchars($review['admin_reply'])) ?></p>
+              </div>
+            <?php endif; ?>
             <?php if (isset($_SESSION['user_id']) && (int) $_SESSION['user_id'] === (int) $review['user_id']): ?>
               <div class="review-actions">
                 <button class="review-delete-button" type="button" data-review-delete="<?= (int) $review['id'] ?>">Hapus</button>
@@ -599,6 +608,12 @@ function formatReviewDate($value)
               <div class="stars" aria-label="Rating ${review.rating} dari 5">${escapeHtml(review.stars)}</div>
             </div>
             <p class="review-text">${escapeHtml(review.review_description).replace(/\n/g, '<br>')}</p>
+            ${review.admin_reply ? `
+              <div class="review-admin-reply">
+                <p class="review-admin-reply__label">Balasan Admin</p>
+                <p class="review-admin-reply__text">${escapeHtml(review.admin_reply).replace(/\n/g, '<br>')}</p>
+              </div>
+            ` : ''}
             ${review.can_delete ? `<div class="review-actions"><button class="review-delete-button" type="button" data-review-delete="${review.id}">Hapus</button></div>` : ''}
           </article>
         `;

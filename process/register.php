@@ -41,7 +41,7 @@ function createUser($email, $password, $nama)
     $password = password_hash($password, PASSWORD_DEFAULT);
 
     // create user
-    $queryCreateUser = "INSERT INTO users (email, password, name, level) VALUES ('$email', '$password', '$nama', 'user')";
+    $queryCreateUser = "INSERT INTO users (email, password, name, whatsapp, instagram, profile_photo, level) VALUES ('$email', '$password', '$nama', '', '', '', 'user')";
     $execCreateUser = mysqli_query($koneksi, $queryCreateUser);
     if ($execCreateUser) {
 
@@ -52,8 +52,8 @@ function createUser($email, $password, $nama)
 
         // masukkan data user ke session
         syncUserSession($user);
-        header("Location: ../EvenTura.php");
+        header("Location: ../index.php");
     } else {
-        echo "Data gagal ditambahkan";
+        echo mysqli_errno($koneksi) === 1062 ? "Email sudah digunakan" : "Data gagal ditambahkan";
     }
 }

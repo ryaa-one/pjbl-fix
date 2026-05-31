@@ -11,7 +11,9 @@ INSERT INTO events (
   end_date,
   location,
   thumnail,
-  gallery_carousel
+  gallery_carousel,
+  view_count,
+  is_favourite
 ) VALUES (
   'Tari Kecak',
   'Tari Kecak adalah pertunjukan drama tari khas Bali yang mengangkat kisah Ramayana. Tarian ini ditarikan oleh puluhan penari laki-laki yang duduk secara melingkar sambil menyerukan "cak cak cak".',
@@ -22,5 +24,7 @@ INSERT INTO events (
   '2025-06-20',
   'Pura Uluwatu, Bali',
   'assets/images/tk1.png',
-  '["assets/images/tk1.png","assets/images/tk2.jpg","assets/images/tk3.jpg","assets/images/tk1.png"]'
+  '["assets/images/tk1.png","assets/images/tk2.jpg","assets/images/tk3.jpg","assets/images/tk1.png"]',
+  0,
+  0
 );

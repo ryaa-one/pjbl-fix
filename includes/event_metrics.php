@@ -18,6 +18,30 @@ function ensureEventMetricsColumns($koneksi)
     $resultViewCount = mysqli_query($koneksi, "SHOW COLUMNS FROM events LIKE 'view_count'");
     if ($resultViewCount && mysqli_num_rows($resultViewCount) === 0) {
         mysqli_query($koneksi, "ALTER TABLE events ADD COLUMN view_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER user_id");
+    } elseif ($resultViewCount) {
+        $viewCountColumn = mysqli_fetch_assoc($resultViewCount);
+        $defaultValue = isset($viewCountColumn['Default']) ? (string) $viewCountColumn['Default'] : null;
+        $isNullable = ($viewCountColumn['Null'] ?? '') === 'YES';
+
+        if ($defaultValue !== '0' || $isNullable) {
+            mysqli_query($koneksi, "ALTER TABLE events MODIFY COLUMN view_count INT UNSIGNED NOT NULL DEFAULT 0");
+        }
+    }
+
+    $resultIsFavourite = mysqli_query($koneksi, "SHOW COLUMNS FROM events LIKE 'is_favourite'");
+    if ($resultIsFavourite && mysqli_num_rows($resultIsFavourite) === 0) {
+        mysqli_query($koneksi, "ALTER TABLE events ADD COLUMN is_favourite TINYINT(1) NOT NULL DEFAULT 0 AFTER view_count");
+        return;
+    }
+
+    if ($resultIsFavourite) {
+        $isFavouriteColumn = mysqli_fetch_assoc($resultIsFavourite);
+        $defaultValue = isset($isFavouriteColumn['Default']) ? (string) $isFavouriteColumn['Default'] : null;
+        $isNullable = ($isFavouriteColumn['Null'] ?? '') === 'YES';
+
+        if ($defaultValue !== '0' || $isNullable) {
+            mysqli_query($koneksi, "ALTER TABLE events MODIFY COLUMN is_favourite TINYINT(1) NOT NULL DEFAULT 0");
+        }
     }
 }
 

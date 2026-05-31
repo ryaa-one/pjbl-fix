@@ -16,6 +16,9 @@
         </div>
         <div class="container-kanan">
             <div class="main-content">
+                <?php if (($_GET['password_reset'] ?? '') === 'success'): ?>
+                    <p class="form-message form-message-success">Password berhasil diubah. Silakan masuk dengan password baru.</p>
+                <?php endif; ?>
                 <form action="process/login.php" method="post">
                     <h1 class="title">Masuk</h1>
                     <div class="form-group">
@@ -41,7 +44,7 @@
                     <span class="divider-text">atau</span>
                     <div class="divider-line"></div>
                 </div>
-                <button class="btn-google">
+                <button type="button" class="btn-google" onclick="window.location.href='google-login.php'">
                     <span class="google-icon">G</span>
                     Daftar dengan google
                 </button>

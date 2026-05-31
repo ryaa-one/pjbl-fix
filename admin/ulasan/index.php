@@ -3,6 +3,7 @@ $currentLevel = "admin";
 
 include '../../process/checkAuth.php';
 include '../../config/database.php';
+include_once '../../includes/review_reply.php';
 
 $currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $statusMessage = "";
@@ -11,14 +12,6 @@ $filterEventId = isset($_GET['event_id']) ? (int) $_GET['event_id'] : 0;
 $perPage = 10;
 $currentPage = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $offset = ($currentPage - 1) * $perPage;
-
-function ensureReviewReplyColumn($koneksi): void
-{
-    $resultReply = mysqli_query($koneksi, "SHOW COLUMNS FROM event_reviews LIKE 'admin_reply'");
-    if ($resultReply && mysqli_num_rows($resultReply) === 0) {
-        mysqli_query($koneksi, "ALTER TABLE event_reviews ADD COLUMN admin_reply TEXT NULL AFTER rating");
-    }
-}
 
 function buildReviewPaginationUrl(int $page): string
 {
@@ -103,6 +96,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_reply_id'])) {
     $statusType = "error";
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_reply_id'])) {
+    $reviewId = (int) $_POST['delete_reply_id'];
+    $canAccessReview = adminCanAccessReview($koneksi, $reviewId, $currentAdminId);
+
+    if ($canAccessReview) {
+        $stmtDeleteReply = mysqli_prepare(
+            $koneksi,
+            "
+            UPDATE event_reviews
+            INNER JOIN events ON events.id = event_reviews.event_id
+            SET admin_reply = NULL
+            WHERE event_reviews.id = ?
+              AND events.user_id = ?
+            "
+        );
+
+        if ($stmtDeleteReply) {
+            mysqli_stmt_bind_param($stmtDeleteReply, 'ii', $reviewId, $currentAdminId);
+            $execDeleteReply = mysqli_stmt_execute($stmtDeleteReply);
+            mysqli_stmt_close($stmtDeleteReply);
+        } else {
+            $execDeleteReply = false;
+        }
+    } else {
+        $execDeleteReply = false;
+    }
+
+    if ($execDeleteReply) {
+        header("Location: " . buildReviewRedirectUrl('reply_deleted'));
+        exit();
+    }
+
+    $statusMessage = "Balasan ulasan gagal dihapus.";
+    $statusType = "error";
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_review_id'])) {
     $reviewId = (int) $_POST['delete_review_id'];
 
@@ -139,6 +168,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_review_id'])) 
 if ($statusMessage === "" && isset($_GET['status'])) {
     if ($_GET['status'] === 'replied') {
         $statusMessage = "Balasan ulasan berhasil disimpan.";
+    } elseif ($_GET['status'] === 'reply_deleted') {
+        $statusMessage = "Balasan ulasan berhasil dihapus.";
     } elseif ($_GET['status'] === 'deleted') {
         $statusMessage = "Ulasan berhasil dihapus.";
     }
@@ -401,17 +432,29 @@ if ($filterEventId > 0) {
                     </td>
                     <td class="col-review-reply">
                       <form class="reply-form" method="post" action="">
-                        <input type="hidden" name="save_reply_id" value="<?= htmlspecialchars($review['id']) ?>" />
                         <textarea
                           class="admin-field reply-field"
                           name="admin_reply"
                           placeholder="Tulis balasan admin..."
                         ><?= htmlspecialchars($review['admin_reply'] ?? '') ?></textarea>
                         <div class="reply-actions">
-                          <button class="table-action table-action--edit" type="submit">
+                          <button
+                            class="table-action table-action--edit"
+                            type="submit"
+                            name="save_reply_id"
+                            value="<?= htmlspecialchars($review['id']) ?>"
+                          >
                             <?= empty($review['admin_reply']) ? 'Balas' : 'Edit balasan' ?>
                           </button>
-                          <?php if (empty($review['admin_reply'])): ?>
+                          <?php if (! empty($review['admin_reply'])): ?>
+                            <button
+                              class="table-action table-action--delete"
+                              type="submit"
+                              name="delete_reply_id"
+                              value="<?= htmlspecialchars($review['id']) ?>"
+                              onclick="return confirm('Hapus balasan ulasan ini?');"
+                            >Hapus balasan</button>
+                          <?php else: ?>
                             <span class="reply-empty">Belum dibalas</span>
                           <?php endif; ?>
                         </div>

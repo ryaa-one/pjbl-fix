@@ -23,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($formData['email'] === '') {
         $errors[] = "Email wajib diisi.";
+    } elseif (! filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Format email tidak valid.";
     }
 
     if ($password === '') {
@@ -47,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $passwordHashed = password_hash($password, PASSWORD_DEFAULT);
             $passwordEscaped = mysqli_real_escape_string($koneksi, $passwordHashed);
 
-            $queryCreateUser = "INSERT INTO users (name, email, password, level) VALUES ('$nameEscaped', '$emailEscaped', '$passwordEscaped', '$levelEscaped')";
+            $queryCreateUser = "INSERT INTO users (name, email, password, whatsapp, instagram, profile_photo, level) VALUES ('$nameEscaped', '$emailEscaped', '$passwordEscaped', '', '', '', '$levelEscaped')";
             $execCreateUser = mysqli_query($koneksi, $queryCreateUser);
 
             if ($execCreateUser) {
@@ -55,7 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
 
-            $errors[] = "Data user gagal ditambahkan.";
+            $errors[] = mysqli_errno($koneksi) === 1062
+                ? "Email sudah digunakan."
+                : "Data user gagal ditambahkan.";
         }
     }
 }

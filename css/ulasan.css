@@ -5,12 +5,30 @@
 }
 
 .reviews-table {
-  min-width: 1120px;
+  min-width: 1180px;
+}
+
+.reviews-table th {
+  white-space: nowrap;
+}
+
+.reviews-table td {
+  vertical-align: top;
+}
+
+.reviews-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.reviews-table tbody tr:hover {
+  background: #fafbff;
 }
 
 .review-text {
+  margin: 0;
   color: #344054;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .review-meta {
@@ -28,14 +46,16 @@
 .reply-form {
   display: grid;
   gap: 10px;
-  min-width: 240px;
+  min-width: 220px;
 }
 
 .reply-field {
+  width: 100%;
   min-height: 82px;
   padding: 10px 12px;
   border-radius: 12px;
   resize: vertical;
+  line-height: 1.45;
 }
 
 .reply-actions {
@@ -51,11 +71,11 @@
 }
 
 .col-review-event {
-  width: 18%;
+  width: 16%;
 }
 
 .col-review-user {
-  width: 16%;
+  width: 14%;
 }
 
 .col-review-rating {
@@ -63,15 +83,19 @@
 }
 
 .col-review-text {
-  width: 25%;
+  width: 22%;
 }
 
 .col-review-reply {
-  width: 26%;
+  width: 24%;
 }
 
 .col-review-actions {
-  width: 120px;
+  width: 126px;
+}
+
+.col-review-actions .table-actions {
+  align-items: flex-start;
 }
 
 @media (max-width: 760px) {
@@ -80,17 +104,17 @@
   }
 
   .reviews-table {
-    min-width: 960px;
+    min-width: 1040px;
   }
 
   .reply-form {
-    min-width: 200px;
+    min-width: 190px;
   }
 }
 
 @media (max-width: 600px) {
   .reviews-table {
-    min-width: 860px;
+    min-width: 980px;
   }
 
   .reply-actions {

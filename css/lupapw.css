@@ -147,6 +147,25 @@ body {
   font-weight: 500;
 }
 
+.form-message {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.form-message-success {
+  color: #155724;
+  background: #d4edda;
+}
+
+.form-message-error {
+  color: #721c24;
+  background: #f8d7da;
+}
+
 /* --- Tombol Google --- */
 .btn-google {
   width: 410px;

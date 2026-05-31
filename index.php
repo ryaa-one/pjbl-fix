@@ -22,6 +22,31 @@ function getIndexEventImage(array $event): string
   return !empty($event['thumnail']) ? $event['thumnail'] : 'assets/images/gambar-tk1.png';
 }
 
+function getIndexEventGalleryImages(array $event): array
+{
+  if (empty($event['gallery_carousel'])) {
+    return [];
+  }
+
+  $decoded = json_decode($event['gallery_carousel'], true);
+  if (!is_array($decoded)) {
+    return [];
+  }
+
+  return array_values(array_filter($decoded, fn($item) => is_string($item) && trim($item) !== ''));
+}
+
+function getPopularEventDiamondImage(array $event, int $diamondIndex): string
+{
+  $galleryImages = getIndexEventGalleryImages($event);
+
+  if (count($galleryImages) > 1 && !empty($galleryImages[$diamondIndex])) {
+    return $galleryImages[$diamondIndex];
+  }
+
+  return getIndexEventImage($event);
+}
+
 function buildIndexEventDescription(?string $description, int $limit = 210): string
 {
   $text = trim(strip_tags((string) $description));
@@ -97,6 +122,25 @@ $resultPopularEvents = mysqli_query($koneksi, $queryPopularEvents);
 if ($resultPopularEvents) {
   while ($event = mysqli_fetch_assoc($resultPopularEvents)) {
     $popularEvents[] = $event;
+  }
+}
+
+$upcomingEvents = [];
+$queryUpcomingEvents = "
+  SELECT
+    events.*,
+    COALESCE(categories.name, 'Tanpa kategori') AS category_name
+  FROM events
+  LEFT JOIN categories ON events.category_id = categories.id
+  WHERE events.start_date > NOW()
+  ORDER BY events.start_date ASC, events.id ASC
+  LIMIT 3
+";
+
+$resultUpcomingEvents = mysqli_query($koneksi, $queryUpcomingEvents);
+if ($resultUpcomingEvents) {
+  while ($event = mysqli_fetch_assoc($resultUpcomingEvents)) {
+    $upcomingEvents[] = $event;
   }
 }
 
@@ -189,14 +233,13 @@ $popularSectionLayouts = [
         <?php foreach ($popularEvents as $index => $event): ?>
           <?php
             $layout = $popularSectionLayouts[$index];
-            $eventImage = getIndexEventImage($event);
             $eventDate = formatPopularEventDateRange($event['start_date'] ?? null, $event['end_date'] ?? null);
             $eventLocation = !empty($event['location']) ? $event['location'] : 'Lokasi belum tersedia';
           ?>
-          <?php foreach ($layout['boxes'] as $boxClass): ?>
+          <?php foreach ($layout['boxes'] as $boxIndex => $boxClass): ?>
             <div class="placeholder-box <?= htmlspecialchars($boxClass) ?>">
               <img
-                src="<?= htmlspecialchars($eventImage) ?>"
+                src="<?= htmlspecialchars(getPopularEventDiamondImage($event, $boxIndex)) ?>"
                 alt="<?= htmlspecialchars($event['title']) ?>"
               />
             </div>
@@ -222,10 +265,15 @@ $popularSectionLayouts = [
       </div>
     </div>
 
-    <h2 class="eventakandatang">Event Populer</h2>
+    <h2 class="eventakandatang">Event Akan Datang</h2>
     <div class="event-grid">
-      <?php foreach ($popularEvents as $event): ?>
-        <div class="event-card">
+      <?php if (count($upcomingEvents) > 0): ?>
+      <?php foreach ($upcomingEvents as $event): ?>
+        <a
+          class="event-card"
+          href="detailEvent.php?id=<?= urlencode((string) $event['id']) ?>"
+          aria-label="Lihat detail event <?= htmlspecialchars($event['title']) ?>"
+        >
           <img
             src="<?= htmlspecialchars(getIndexEventImage($event)) ?>"
             alt="<?= htmlspecialchars($event['title']) ?>"
@@ -236,8 +284,11 @@ $popularSectionLayouts = [
             <h2><?= htmlspecialchars($event['title']) ?></h2>
             <div class="tanggal"><?= htmlspecialchars(formatPopularEventDateRange($event['start_date'] ?? null, $event['end_date'] ?? null)) ?></div>
           </div>
-        </div>
+        </a>
       <?php endforeach; ?>
+      <?php else: ?>
+        <p>Tidak ada event yang akan datang.</p>
+      <?php endif; ?>
     </div>
 
     <?php include("templates/footer.php"); ?>

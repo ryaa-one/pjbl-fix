@@ -46,7 +46,7 @@
                     <span class="divider-text">atau</span>
                     <div class="divider-line"></div>
                 </div>
-                <button class="btn-google">
+                <button type="button" class="btn-google" onclick="window.location.href='google-login.php'">
                     <span class="google-icon">G</span>
                     Daftar dengan google
                 </button>

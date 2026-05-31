@@ -13,12 +13,18 @@ function normalizeProfilePhotoPath($profilePhoto)
         return getDefaultProfilePhotoPath();
     }
 
+    if (preg_match('#^https?://#i', $profilePhoto)) {
+        return $profilePhoto;
+    }
+
     return ltrim(str_replace('\\', '/', $profilePhoto), '/');
 }
 
 function getProfilePhotoUrl($profilePhoto, $pathPrefix = '')
 {
-    return $pathPrefix . normalizeProfilePhotoPath($profilePhoto);
+    $profilePhoto = normalizeProfilePhotoPath($profilePhoto);
+
+    return preg_match('#^https?://#i', $profilePhoto) ? $profilePhoto : $pathPrefix . $profilePhoto;
 }
 
 function syncUserSession($user)
@@ -31,7 +37,9 @@ function syncUserSession($user)
     $_SESSION['email'] = $user['email'];
     $_SESSION['nama'] = $user['name'];
     $_SESSION['level'] = $user['level'];
-    $_SESSION['profile_photo'] = $user['profile_photo'] ?? '';
+    $_SESSION['profile_photo'] = trim((string) ($user['profile_photo'] ?? '')) !== ''
+        ? $user['profile_photo']
+        : ($user['avatar'] ?? '');
 }
 
 function validateAndUploadProfilePhoto($file, $projectRoot)
