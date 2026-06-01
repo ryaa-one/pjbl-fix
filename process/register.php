@@ -55,6 +55,7 @@ function createUser($email, $password, $nama)
         $user = mysqli_fetch_assoc($execGetUser);
 
         // masukkan data user ke session
+     
         session_regenerate_id(true);
         syncUserSession($user);
         header("Location: ../index.php");
