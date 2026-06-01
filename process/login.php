@@ -1,7 +1,8 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/auth.php';
+auth_start_session();
+require_request_method('POST');
+
 include_once '../includes/profile_photo.php';
 
 if (isset($_POST['submit-login'])) {
@@ -12,6 +13,7 @@ if (isset($_POST['submit-login'])) {
 
     $user = checkExistingAccount($email);
     checkPassword($password, $user['password']);
+    session_regenerate_id(true);
     saveUserToSession($user);
 
     if ($user['level'] == 'super_admin') {
@@ -23,6 +25,10 @@ if (isset($_POST['submit-login'])) {
     }
     exit();
 }
+
+http_response_code(400);
+echo 'Permintaan login tidak valid.';
+exit();
 
 function checkExistingAccount($email)
 {

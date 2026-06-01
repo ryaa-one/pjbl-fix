@@ -1,7 +1,8 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/auth.php';
+auth_start_session();
+require_request_method('POST');
+
 include_once '../includes/profile_photo.php';
 
 if(isset($_POST['submit-register'])) {
@@ -19,6 +20,9 @@ if(isset($_POST['submit-register'])) {
     createUser($email, $password, $nama);
 }
 
+http_response_code(400);
+echo 'Permintaan registrasi tidak valid.';
+exit();
 
 function checkExistingAccount($email)
 {
@@ -51,8 +55,10 @@ function createUser($email, $password, $nama)
         $user = mysqli_fetch_assoc($execGetUser);
 
         // masukkan data user ke session
+        session_regenerate_id(true);
         syncUserSession($user);
         header("Location: ../index.php");
+        exit();
     } else {
         echo mysqli_errno($koneksi) === 1062 ? "Email sudah digunakan" : "Data gagal ditambahkan";
     }

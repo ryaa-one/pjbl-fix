@@ -1,7 +1,6 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/auth.php';
+auth_start_session();
 
 include '../config/database.php';
 
@@ -16,14 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if (! isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Login diperlukan untuk menyimpan event favorit.',
-    ]);
-    exit();
-}
+require_login_json();
 
 $eventId = isset($_POST['event_id']) ? (int) $_POST['event_id'] : 0;
 $userId = (int) $_SESSION['user_id'];

@@ -1,4 +1,8 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+forbid_direct_script_access(__FILE__);
+require_role('super_admin');
+
 $search = isset($_GET['search']) ? trim($_GET['search']) : "";
 $filterCategory = isset($_GET['filter_category']) ? trim($_GET['filter_category']) : "";
 $sort = isset($_GET['sort']) ? trim($_GET['sort']) : "id";

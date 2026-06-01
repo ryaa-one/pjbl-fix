@@ -1,0 +1,27 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block version-control metadata, including paths such as .git/index.
+    RewriteRule "(^|/)\.(git|svn|hg)(/|$)" - [F,L,NC]
+
+    # Legacy static account prototypes must resolve to the protected account pages.
+    RewriteRule ^eventfavorit\.php$ akun/eventfavorit.php [R=302,L,NE]
+    RewriteRule ^eventYangDisukai\.php$ akun/eventYangDisukai.php [R=302,L,NE]
+    RewriteRule ^pengaturanAkun\.php$ akun/pengaturanAkun.php [R=302,L,NE]
+</IfModule>
+
+# Internal PHP helpers and secrets must never be served over HTTP.
+<IfModule mod_authz_core.c>
+    <FilesMatch "(^\.|\.sql$|composer\.(json|lock)$|^(gbut|lp1|nyobaLandingPage)\.php$)">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    <FilesMatch "(^\.|\.sql$|composer\.(json|lock)$|^(gbut|lp1|nyobaLandingPage)\.php$)">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>

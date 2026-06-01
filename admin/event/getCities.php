@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
 
+require_once '../../includes/auth.php';
+require_role_json('admin');
+
 include '../../config/database.php';
 
 $provinceId = isset($_GET['province_id']) ? (int) $_GET['province_id'] : 0;
