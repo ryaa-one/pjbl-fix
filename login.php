@@ -45,17 +45,9 @@
                     <div class="divider-line"></div>
                 </div>
                 <button type="button" class="btn-google" onclick="window.location.href='google-login.php'">
-                    <span class="google-icon">G</span>
-                    Daftar dengan google
+                    <img src="assets/images/logo-google.png" class="google-icon" alt="Logo Google">
+                    <span>Masuk dengan Google</span>
                 </button>
-                <div class="logo">
-                    <ul>
-                        <li><a href="#"><img src="assets/images/logo-fb.png"></a></li>
-                        <li><a href="#"><img src="assets/images/logo-twitter.png"></a></li>
-                        <li><a href="#"><img src="assets/images/logo-linkedin.png"></a></li>
-                        <li><a href="#"><img src="assets/images/logo-ig.png"></a></li>
-                    </ul>
-                </div>
             </div>
         </div>
     </div>

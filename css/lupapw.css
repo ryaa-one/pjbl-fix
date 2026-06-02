@@ -14,18 +14,23 @@ body {
   background: #ffffff;
   font-family: "Inter", sans-serif;
   color: #000;
+  overflow-x: hidden;
 }
 
 /* --- Layout utama --- */
 .container {
   display: flex;
   align-items: stretch;
+  width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Bagian kiri (gambar login) */
 .container-kiri {
-  flex: 0 0 759px;
+  flex: 0 1 clamp(360px, 43vw, 650px);
+  height: calc(100vh - 34px);
+  height: calc(100dvh - 34px);
   margin: 17px;
   display: flex;
   align-items: center;
@@ -35,9 +40,8 @@ body {
 
 .image-1 {
   width: 100%;
-  height: auto;
-  max-height: 990px;
-  object-fit: cover;
+  height: 100%;
+  object-fit: contain;
   display: block;
 }
 
@@ -48,26 +52,34 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  padding: 40px;
+  padding: clamp(18px, 3vh, 40px) clamp(20px, 3vw, 40px);
   min-width: 320px;
 }
 
 .main-content {
   position: relative;
-  width: 529px;
-  max-width: calc(100% - 40px);
+  width: 440px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: clamp(8px, 1.5vh, 18px);
+  padding: clamp(4px, 1vh, 10px) 0;
+}
+
+.main-content form {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Judul */
 .title {
-  font-size: 68px;
+  font-size: clamp(42px, 6vh, 68px);
   font-weight: 700;
   text-align: center;
-  margin-bottom: 43px;
+  margin-bottom: clamp(18px, 4vh, 43px);
   color: #000;
   line-height: 1;
 }
@@ -75,14 +87,14 @@ body {
 /* --- Input Form --- */
 .form-group {
   width: 100%;
-  padding-bottom: 15px;
+  padding-bottom: clamp(10px, 2vh, 15px);
 }
 
 .input-wrapper {
   position: relative;
   width: 100%;
-  max-width: 527px;
-  height: 57px;
+  max-width: 420px;
+  height: clamp(50px, 6vh, 57px);
   border: 1px solid #000;
   border-radius: 10px;
   display: flex;
@@ -119,7 +131,7 @@ body {
 .btn-login {
   width: 400px;
   max-width: 100%;
-  height: 60px;
+  height: clamp(52px, 6.5vh, 60px);
   background: #b31919;
   border: none;
   border-radius: 30px;
@@ -128,7 +140,7 @@ body {
   font-size: 24px;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: clamp(8px, 1.5vh, 15px);
   align-self: center;
 }
 
@@ -205,6 +217,7 @@ body {
     flex: 0 0 auto;
     width: 100%;
     max-width: 900px;
+    height: min(30vh, 260px);
     margin: 10px 0;
   }
 
@@ -216,7 +229,7 @@ body {
   .main-content {
     width: 100%;
     padding: 0 20px;
-    max-width: 720px;
+    max-width: 520px;
   }
 
   .title {
@@ -248,17 +261,20 @@ body {
 
   .container-kanan {
     width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
     padding: 20px;
   }
 
   .main-content {
     width: 100%;
-    padding: 0 20px;
+    padding: 0;
     max-width: 480px;
   }
 
   .title {
     font-size: 36px;
+    margin-bottom: 20px;
   }
 
   .input-wrapper {

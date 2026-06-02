@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/profile_photo.php';
 auth_start_session();
 
 include '../config/database.php';
@@ -112,7 +113,8 @@ $queryReview = "
         event_reviews.review_description,
         event_reviews.rating,
         event_reviews.created_at,
-        users.name AS user_name
+        users.name AS user_name,
+        users.profile_photo AS user_profile_photo
     FROM event_reviews
     INNER JOIN users ON event_reviews.user_id = users.id
     WHERE event_reviews.id = ?
@@ -129,6 +131,7 @@ if (! $stmtReview) {
         'review' => [
             'id' => $reviewId,
             'user_name' => $_SESSION['nama'] ?? 'User',
+            'user_profile_photo_url' => getProfilePhotoUrl($_SESSION['profile_photo'] ?? ''),
             'review_description' => $reviewDescription,
             'rating' => $rating,
             'stars' => str_repeat('★', $rating) . str_repeat('☆', 5 - $rating),
@@ -150,6 +153,7 @@ if (! $review) {
     $review = [
         'id' => $reviewId,
         'user_name' => $_SESSION['nama'] ?? 'User',
+        'user_profile_photo' => $_SESSION['profile_photo'] ?? '',
         'review_description' => $reviewDescription,
         'rating' => $rating,
         'created_at' => date('Y-m-d H:i:s'),
@@ -162,6 +166,7 @@ echo json_encode([
     'review' => [
         'id' => (int) $review['id'],
         'user_name' => $review['user_name'],
+        'user_profile_photo_url' => getProfilePhotoUrl($review['user_profile_photo'] ?? ''),
         'review_description' => $review['review_description'],
         'rating' => (int) $review['rating'],
         'stars' => str_repeat('★', (int) $review['rating']) . str_repeat('☆', 5 - (int) $review['rating']),

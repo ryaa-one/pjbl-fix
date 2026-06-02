@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 include 'config/database.php';
 include_once 'includes/event_metrics.php';
+include_once 'includes/profile_photo.php';
 include_once 'includes/review_reply.php';
 include_once 'includes/user_social.php';
 
@@ -110,7 +111,8 @@ $queryReviews = "
     event_reviews.rating,
     event_reviews.admin_reply,
     event_reviews.created_at,
-    users.name AS user_name
+    users.name AS user_name,
+    users.profile_photo AS user_profile_photo
   FROM event_reviews
   INNER JOIN users ON event_reviews.user_id = users.id
   WHERE event_reviews.event_id = ?
@@ -167,6 +169,9 @@ $adminInstagram = normalizeInstagramUsername($event['admin_instagram'] ?? '');
 $adminWhatsappUrl = $adminWhatsapp !== '' ? 'https://wa.me/' . $adminWhatsapp : '';
 $adminInstagramUrl = $adminInstagram !== '' ? 'https://instagram.com/' . rawurlencode($adminInstagram) : '';
 $isEventOwner = $currentUserId > 0 && (int) $event['user_id'] === $currentUserId;
+$currentUserRole = (string) ($_SESSION['level'] ?? '');
+$canManageEventReplies = $currentUserRole === 'admin' && $isEventOwner;
+$canModerateReviews = $currentUserRole === 'super_admin';
 
 function renderStars($rating)
 {
@@ -399,22 +404,62 @@ function formatReviewDate($value)
           <article class="review-card" data-review-id="<?= (int) $review['id'] ?>">
             <div class="review-header">
               <div class="review-user">
-                <div class="review-avatar"></div>
+                <div class="review-avatar">
+                  <img src="<?= htmlspecialchars(getProfilePhotoUrl($review['user_profile_photo'] ?? '')) ?>" alt="Foto profil <?= htmlspecialchars($review['user_name']) ?>" />
+                </div>
                 <div class="review-info">
                   <h4><?= htmlspecialchars($review['user_name']) ?></h4>
                   <p class="review-tgl"><?= htmlspecialchars(formatReviewDate($review['created_at'])) ?></p>
                 </div>
               </div>
-              <div class="stars" aria-label="Rating <?= (int) $review['rating'] ?> dari 5">
-                <?= htmlspecialchars(renderStars($review['rating'])) ?>
+              <div class="review-header__actions">
+                <div class="stars" aria-label="Rating <?= (int) $review['rating'] ?> dari 5">
+                  <?= htmlspecialchars(renderStars($review['rating'])) ?>
+                </div>
+                <?php if ($canManageEventReplies || $canModerateReviews): ?>
+                  <div class="review-menu">
+                    <button
+                      class="review-menu__trigger"
+                      type="button"
+                      aria-label="Buka menu ulasan"
+                      aria-expanded="false"
+                      data-review-menu-trigger
+                    >&#8942;</button>
+                    <div class="review-menu__dropdown" data-review-menu hidden>
+                      <?php if ($canManageEventReplies): ?>
+                        <button class="review-menu__item" type="button" data-review-reply-open>
+                          <?= empty($review['admin_reply']) ? 'Balas Ulasan' : 'Edit Balasan' ?>
+                        </button>
+                        <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>
+                          Hapus Ulasan
+                        </button>
+                      <?php elseif ($canModerateReviews): ?>
+                        <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>
+                          Hapus Ulasan
+                        </button>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                <?php endif; ?>
               </div>
             </div>
             <p class="review-text"><?= nl2br(htmlspecialchars($review['review_description'])) ?></p>
             <?php if (! empty($review['admin_reply'])): ?>
-              <div class="review-admin-reply">
+              <div class="review-admin-reply" data-review-reply-display>
                 <p class="review-admin-reply__label">Balasan Admin</p>
-                <p class="review-admin-reply__text"><?= nl2br(htmlspecialchars($review['admin_reply'])) ?></p>
+                <p class="review-admin-reply__text" data-review-reply-text><?= nl2br(htmlspecialchars($review['admin_reply'])) ?></p>
               </div>
+            <?php endif; ?>
+            <?php if ($canManageEventReplies): ?>
+              <form class="review-reply-editor" data-review-reply-editor hidden>
+                <label class="review-reply-editor__label">Balasan Admin</label>
+                <textarea class="review-reply-editor__field" name="admin_reply" placeholder="Tulis balasan ulasan..."><?= htmlspecialchars($review['admin_reply'] ?? '') ?></textarea>
+                <p class="review-reply-editor__feedback" data-review-reply-feedback aria-live="polite"></p>
+                <div class="review-reply-editor__actions">
+                  <button class="review-reply-editor__cancel" type="button" data-review-reply-cancel>Batal</button>
+                  <button class="review-reply-editor__submit" type="submit">Simpan Balasan</button>
+                </div>
+              </form>
             <?php endif; ?>
             <?php if (isset($_SESSION['user_id']) && (int) $_SESSION['user_id'] === (int) $review['user_id']): ?>
               <div class="review-actions">
@@ -433,6 +478,8 @@ function formatReviewDate($value)
   <script>
     const carouselImages = <?= json_encode(array_values($carouselImages), JSON_UNESCAPED_SLASHES) ?>;
     const isLoggedIn = <?= $currentUserId > 0 ? 'true' : 'false' ?>;
+    const canManageEventReplies = <?= $canManageEventReplies ? 'true' : 'false' ?>;
+    const canModerateReviews = <?= $canModerateReviews ? 'true' : 'false' ?>;
     let currentSlide = 0;
 
     function renderSlide() {
@@ -594,29 +641,205 @@ function formatReviewDate($value)
         });
       }
 
+      function buildReviewRoleMenu(review) {
+        if (!canManageEventReplies && !canModerateReviews) {
+          return '';
+        }
+
+        const menuItem = canManageEventReplies
+          ? `
+            <button class="review-menu__item" type="button" data-review-reply-open>${review.admin_reply ? 'Edit Balasan' : 'Balas Ulasan'}</button>
+            <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>Hapus Ulasan</button>
+          `
+          : '<button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>Hapus Ulasan</button>';
+
+        return `
+          <div class="review-menu">
+            <button class="review-menu__trigger" type="button" aria-label="Buka menu ulasan" aria-expanded="false" data-review-menu-trigger>&#8942;</button>
+            <div class="review-menu__dropdown" data-review-menu hidden>${menuItem}</div>
+          </div>
+        `;
+      }
+
+      function buildReviewReplyDisplay(adminReply) {
+        if (!adminReply) {
+          return '';
+        }
+
+        return `
+          <div class="review-admin-reply" data-review-reply-display>
+            <p class="review-admin-reply__label">Balasan Admin</p>
+            <p class="review-admin-reply__text" data-review-reply-text>${escapeHtml(adminReply).replace(/\n/g, '<br>')}</p>
+          </div>
+        `;
+      }
+
+      function buildReviewReplyEditor(adminReply) {
+        if (!canManageEventReplies) {
+          return '';
+        }
+
+        return `
+          <form class="review-reply-editor" data-review-reply-editor hidden>
+            <label class="review-reply-editor__label">Balasan Admin</label>
+            <textarea class="review-reply-editor__field" name="admin_reply" placeholder="Tulis balasan ulasan...">${escapeHtml(adminReply || '')}</textarea>
+            <p class="review-reply-editor__feedback" data-review-reply-feedback aria-live="polite"></p>
+            <div class="review-reply-editor__actions">
+              <button class="review-reply-editor__cancel" type="button" data-review-reply-cancel>Batal</button>
+              <button class="review-reply-editor__submit" type="submit">Simpan Balasan</button>
+            </div>
+          </form>
+        `;
+      }
+
       function buildReviewCard(review) {
         return `
           <article class="review-card review-card--new" data-review-id="${review.id}">
             <div class="review-header">
               <div class="review-user">
-                <div class="review-avatar"></div>
+                <div class="review-avatar">
+                  <img src="${escapeHtml(review.user_profile_photo_url)}" alt="Foto profil ${escapeHtml(review.user_name)}" />
+                </div>
                 <div class="review-info">
                   <h4>${escapeHtml(review.user_name)}</h4>
                   <p class="review-tgl">${escapeHtml(review.created_at_label)}</p>
                 </div>
               </div>
-              <div class="stars" aria-label="Rating ${review.rating} dari 5">${escapeHtml(review.stars)}</div>
+              <div class="review-header__actions">
+                <div class="stars" aria-label="Rating ${review.rating} dari 5">${escapeHtml(review.stars)}</div>
+                ${buildReviewRoleMenu(review)}
+              </div>
             </div>
             <p class="review-text">${escapeHtml(review.review_description).replace(/\n/g, '<br>')}</p>
-            ${review.admin_reply ? `
-              <div class="review-admin-reply">
-                <p class="review-admin-reply__label">Balasan Admin</p>
-                <p class="review-admin-reply__text">${escapeHtml(review.admin_reply).replace(/\n/g, '<br>')}</p>
-              </div>
-            ` : ''}
+            ${buildReviewReplyDisplay(review.admin_reply)}
+            ${buildReviewReplyEditor(review.admin_reply)}
             ${review.can_delete ? `<div class="review-actions"><button class="review-delete-button" type="button" data-review-delete="${review.id}">Hapus</button></div>` : ''}
           </article>
         `;
+      }
+
+      function closeReviewMenus(exceptMenu = null) {
+        reviewList.querySelectorAll('[data-review-menu]').forEach((menu) => {
+          if (menu === exceptMenu) {
+            return;
+          }
+
+          menu.hidden = true;
+          const trigger = menu.closest('.review-menu')?.querySelector('[data-review-menu-trigger]');
+          if (trigger) {
+            trigger.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      async function handleSaveReviewReply(editor) {
+        const reviewCard = editor.closest('[data-review-id]');
+        const textarea = editor.querySelector('[name="admin_reply"]');
+        const feedback = editor.querySelector('[data-review-reply-feedback]');
+        const submitButton = editor.querySelector('[type="submit"]');
+        const reviewId = Number(reviewCard?.dataset.reviewId);
+        const adminReply = textarea?.value.trim() || '';
+
+        if (!reviewCard || !textarea || !feedback || !submitButton || !reviewId) {
+          return;
+        }
+
+        if (!adminReply) {
+          feedback.textContent = 'Balasan ulasan tidak boleh kosong.';
+          feedback.classList.add('is-error');
+          return;
+        }
+
+        submitButton.disabled = true;
+        feedback.textContent = 'Menyimpan balasan...';
+        feedback.classList.remove('is-error');
+
+        try {
+          const formData = new FormData();
+          formData.append('action', 'save_reply');
+          formData.append('review_id', String(reviewId));
+          formData.append('event_id', '<?= $eventId ?>');
+          formData.append('admin_reply', adminReply);
+
+          const response = await fetch('process/manageReview.php', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Balasan ulasan gagal disimpan.');
+          }
+
+          let replyDisplay = reviewCard.querySelector('[data-review-reply-display]');
+          if (!replyDisplay) {
+            editor.insertAdjacentHTML('beforebegin', buildReviewReplyDisplay(result.admin_reply));
+            replyDisplay = reviewCard.querySelector('[data-review-reply-display]');
+          }
+
+          const replyText = replyDisplay?.querySelector('[data-review-reply-text]');
+          if (replyText) {
+            replyText.innerHTML = escapeHtml(result.admin_reply).replace(/\n/g, '<br>');
+          }
+
+          const menuItem = reviewCard.querySelector('[data-review-reply-open]');
+          if (menuItem) {
+            menuItem.textContent = 'Edit Balasan';
+          }
+
+          editor.hidden = true;
+          feedback.textContent = '';
+        } catch (error) {
+          feedback.textContent = error.message;
+          feedback.classList.add('is-error');
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+
+      async function handleModerateDeleteReview(button) {
+        const reviewCard = button.closest('[data-review-id]');
+        const reviewId = Number(reviewCard?.dataset.reviewId);
+        if (!reviewCard || !reviewId || !window.confirm('Hapus ulasan ini untuk moderasi?')) {
+          return;
+        }
+
+        button.disabled = true;
+
+        try {
+          const formData = new FormData();
+          formData.append('action', 'delete_review');
+          formData.append('review_id', String(reviewId));
+          formData.append('event_id', '<?= $eventId ?>');
+
+          const response = await fetch('process/manageReview.php', {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+
+          const result = await response.json();
+          if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Ulasan gagal dihapus.');
+          }
+
+          reviewCard.remove();
+          if (!reviewList.querySelector('.review-card')) {
+            reviewList.innerHTML = '<div class="review-empty" id="reviewEmpty">Belum ada ulasan untuk event ini.</div>';
+          }
+
+          reviewFeedback.textContent = result.message;
+          reviewFeedback.classList.remove('is-error');
+        } catch (error) {
+          reviewFeedback.textContent = error.message;
+          reviewFeedback.classList.add('is-error');
+          button.disabled = false;
+        }
       }
 
       async function handleDeleteReview(button) {
@@ -731,12 +954,70 @@ function formatReviewDate($value)
       });
 
       reviewList.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-review-delete]');
-        if (!button) {
+        const menuTrigger = event.target.closest('[data-review-menu-trigger]');
+        if (menuTrigger) {
+          const menu = menuTrigger.closest('.review-menu')?.querySelector('[data-review-menu]');
+          if (!menu) {
+            return;
+          }
+
+          const willOpen = menu.hidden;
+          closeReviewMenus(willOpen ? menu : null);
+          menu.hidden = !willOpen;
+          menuTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
           return;
         }
 
-        handleDeleteReview(button);
+        const replyButton = event.target.closest('[data-review-reply-open]');
+        if (replyButton) {
+          const reviewCard = replyButton.closest('[data-review-id]');
+          const editor = reviewCard?.querySelector('[data-review-reply-editor]');
+          closeReviewMenus();
+          if (editor) {
+            editor.hidden = false;
+            editor.querySelector('textarea')?.focus();
+          }
+          return;
+        }
+
+        const cancelReplyButton = event.target.closest('[data-review-reply-cancel]');
+        if (cancelReplyButton) {
+          const editor = cancelReplyButton.closest('[data-review-reply-editor]');
+          if (editor) {
+            editor.hidden = true;
+          }
+          return;
+        }
+
+        const moderateDeleteButton = event.target.closest('[data-review-moderate-delete]');
+        if (moderateDeleteButton) {
+          closeReviewMenus();
+          handleModerateDeleteReview(moderateDeleteButton);
+          return;
+        }
+
+        const deleteButton = event.target.closest('[data-review-delete]');
+        if (!deleteButton) {
+          return;
+        }
+
+        handleDeleteReview(deleteButton);
+      });
+
+      reviewList.addEventListener('submit', (event) => {
+        const editor = event.target.closest('[data-review-reply-editor]');
+        if (!editor) {
+          return;
+        }
+
+        event.preventDefault();
+        handleSaveReviewReply(editor);
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.review-menu')) {
+          closeReviewMenus();
+        }
       });
     }
   </script>

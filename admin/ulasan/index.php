@@ -92,7 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_reply_id'])) {
         exit();
     }
 
-    $statusMessage = "Balasan ulasan gagal disimpan.";
+    if (! $canAccessReview) {
+        http_response_code(403);
+        $statusMessage = "Anda tidak memiliki akses untuk membalas ulasan event ini.";
+    } else {
+        $statusMessage = "Balasan ulasan gagal disimpan.";
+    }
     $statusType = "error";
 }
 
@@ -128,7 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_reply_id'])) {
         exit();
     }
 
-    $statusMessage = "Balasan ulasan gagal dihapus.";
+    if (! $canAccessReview) {
+        http_response_code(403);
+        $statusMessage = "Anda tidak memiliki akses untuk mengubah balasan ulasan event ini.";
+    } else {
+        $statusMessage = "Balasan ulasan gagal dihapus.";
+    }
     $statusType = "error";
 }
 

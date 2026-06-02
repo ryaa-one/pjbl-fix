@@ -29,93 +29,14 @@ function buildReviewRedirectUrl(string $status): string
     return 'index.php?' . http_build_query($params);
 }
 
-function superAdminCanAccessReview($koneksi, int $reviewId): bool
-{
-    $stmtReview = mysqli_prepare(
-        $koneksi,
-        "
-        SELECT event_reviews.id FROM event_reviews WHERE event_reviews.id = ?
-        LIMIT 1
-        "
-    );
-
-    if (! $stmtReview) {
-        return false;
-    }
-
-    mysqli_stmt_bind_param($stmtReview, 'i', $reviewId);
-    mysqli_stmt_execute($stmtReview);
-    $reviewResult = mysqli_stmt_get_result($stmtReview);
-    $review = $reviewResult ? mysqli_fetch_assoc($reviewResult) : null;
-    mysqli_stmt_close($stmtReview);
-
-    return (bool) $review;
-}
-
 ensureReviewReplyColumn($koneksi);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_reply_id'])) {
-    $reviewId = (int) $_POST['save_reply_id'];
-    $adminReply = trim($_POST['admin_reply'] ?? '');
-    $canAccessReview = superAdminCanAccessReview($koneksi, $reviewId);
-
-    if ($canAccessReview) {
-        $stmtUpdateReply = mysqli_prepare(
-            $koneksi,
-            "
-            UPDATE event_reviews SET admin_reply = ? WHERE id = ?
-            "
-        );
-
-        if ($stmtUpdateReply) {
-            mysqli_stmt_bind_param($stmtUpdateReply, 'si', $adminReply, $reviewId);
-            $execUpdateReply = mysqli_stmt_execute($stmtUpdateReply);
-            mysqli_stmt_close($stmtUpdateReply);
-        } else {
-            $execUpdateReply = false;
-        }
-    } else {
-        $execUpdateReply = false;
-    }
-
-    if ($execUpdateReply) {
-        header("Location: " . buildReviewRedirectUrl('replied'));
-        exit();
-    }
-
-    $statusMessage = "Balasan ulasan gagal disimpan.";
-    $statusType = "error";
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_reply_id'])) {
-    $reviewId = (int) $_POST['delete_reply_id'];
-    $canAccessReview = superAdminCanAccessReview($koneksi, $reviewId);
-
-    if ($canAccessReview) {
-        $stmtDeleteReply = mysqli_prepare(
-            $koneksi,
-            "
-            UPDATE event_reviews SET admin_reply = NULL WHERE id = ?
-            "
-        );
-
-        if ($stmtDeleteReply) {
-            mysqli_stmt_bind_param($stmtDeleteReply, 'i', $reviewId);
-            $execDeleteReply = mysqli_stmt_execute($stmtDeleteReply);
-            mysqli_stmt_close($stmtDeleteReply);
-        } else {
-            $execDeleteReply = false;
-        }
-    } else {
-        $execDeleteReply = false;
-    }
-
-    if ($execDeleteReply) {
-        header("Location: " . buildReviewRedirectUrl('reply_deleted'));
-        exit();
-    }
-
-    $statusMessage = "Balasan ulasan gagal dihapus.";
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_reply_id']) || isset($_POST['delete_reply_id']))
+) {
+    http_response_code(403);
+    $statusMessage = "Super admin tidak memiliki akses untuk mengubah balasan ulasan.";
     $statusType = "error";
 }
 
@@ -149,11 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_review_id'])) 
 }
 
 if ($statusMessage === "" && isset($_GET['status'])) {
-    if ($_GET['status'] === 'replied') {
-        $statusMessage = "Balasan ulasan berhasil disimpan.";
-    } elseif ($_GET['status'] === 'reply_deleted') {
-        $statusMessage = "Balasan ulasan berhasil dihapus.";
-    } elseif ($_GET['status'] === 'deleted') {
+    if ($_GET['status'] === 'deleted') {
         $statusMessage = "Ulasan berhasil dihapus.";
     }
 }
@@ -416,34 +333,11 @@ if ($filterEventId > 0) {
                       <div class="review-meta"><?= htmlspecialchars(date('d M Y H:i', strtotime((string) $review['created_at']))) ?></div>
                     </td>
                     <td class="col-review-reply">
-                      <form class="reply-form" method="post" action="">
-                        <textarea
-                          class="admin-field reply-field"
-                          name="admin_reply"
-                          placeholder="Tulis balasan admin..."
-                        ><?= htmlspecialchars($review['admin_reply'] ?? '') ?></textarea>
-                        <div class="reply-actions">
-                          <button
-                            class="table-action table-action--edit"
-                            type="submit"
-                            name="save_reply_id"
-                            value="<?= htmlspecialchars($review['id']) ?>"
-                          >
-                            <?= empty($review['admin_reply']) ? 'Balas' : 'Edit balasan' ?>
-                          </button>
-                          <?php if (! empty($review['admin_reply'])): ?>
-                            <button
-                              class="table-action table-action--delete"
-                              type="submit"
-                              name="delete_reply_id"
-                              value="<?= htmlspecialchars($review['id']) ?>"
-                              onclick="return confirm('Hapus balasan ulasan ini?');"
-                            >Hapus balasan</button>
-                          <?php else: ?>
-                            <span class="reply-empty">Belum dibalas</span>
-                          <?php endif; ?>
-                        </div>
-                      </form>
+                      <?php if (! empty($review['admin_reply'])): ?>
+                        <p class="review-text"><?= nl2br(htmlspecialchars($review['admin_reply'])) ?></p>
+                      <?php else: ?>
+                        <span class="reply-empty">Belum dibalas</span>
+                      <?php endif; ?>
                     </td>
                     <td class="col-review-actions">
                       <div class="table-actions">
