@@ -4,9 +4,23 @@ include 'process/category.php';
 
 $categoryId = findCategoryIdByName($koneksi, 'Seni');
 $redirectUrl = 'jelajah.php';
+$params = [];
 
 if ($categoryId !== null) {
-    $redirectUrl .= '?category=' . urlencode((string) $categoryId);
+    $params['category'] = $categoryId;
+}
+
+if (trim($_GET['search'] ?? '') !== '') {
+    $params['search'] = trim($_GET['search']);
+}
+
+$page = max(1, (int) ($_GET['page'] ?? 1));
+if ($page > 1) {
+    $params['page'] = $page;
+}
+
+if (!empty($params)) {
+    $redirectUrl .= '?' . http_build_query($params);
 }
 
 header('Location: ' . $redirectUrl);

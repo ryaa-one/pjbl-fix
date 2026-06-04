@@ -21544,6 +21544,20 @@
         white-space: nowrap;
         width: fit-content;
       }
+
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      body > div,
+      body > main,
+      [class^="page-"],
+      [class*=" page-"] {
+        max-width: 100vw;
+        overflow-x: hidden;
+      }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23804,4 +23818,3 @@
     ></script>
   </body>
 </html>
-

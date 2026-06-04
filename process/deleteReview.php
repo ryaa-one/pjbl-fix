@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-require_login_json();
+require_role_json('user');
 
 $reviewId = isset($_POST['review_id']) ? (int) $_POST['review_id'] : 0;
 $eventId = isset($_POST['event_id']) ? (int) $_POST['event_id'] : 0;

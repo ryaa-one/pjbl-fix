@@ -1,14 +1,15 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/pagination.php';
 forbid_direct_script_access(__FILE__);
-require_role('admin');
+require_role('user');
 
 $search = isset($_GET['search']) ? trim($_GET['search']) : "";
 $filterCategory = isset($_GET['filter_category']) ? trim($_GET['filter_category']) : "";
 $sort = isset($_GET['sort']) ? trim($_GET['sort']) : "id";
 $direction = isset($_GET['direction']) ? strtolower(trim($_GET['direction'])) : "desc";
 $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-$perPage = 10;
+$perPage = getRowsPerPage('user_events');
 $currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 
 $allowedSorts = [
@@ -44,20 +45,39 @@ if ($filterCategory !== '' && ! array_key_exists($filterCategory, $eventCategory
 }
 
 $queryEventsBase = "
-    SELECT 
+    SELECT
         events.id,
         events.title,
         COALESCE(categories.name, 'Tanpa kategori') AS category,
         COALESCE(cities.name, '-') AS city,
         events.start_date,
         events.location,
-        events.thumnail
+        events.thumnail,
+        events.status,
+        events.rejection_reason,
+        (
+            SELECT status
+            FROM event_update_requests
+            WHERE event_update_requests.event_id = events.id
+              AND event_update_requests.user_id = events.user_id
+            ORDER BY event_update_requests.id DESC
+            LIMIT 1
+        ) AS latest_edit_status,
+        (
+            SELECT rejection_reason
+            FROM event_update_requests
+            WHERE event_update_requests.event_id = events.id
+              AND event_update_requests.user_id = events.user_id
+              AND event_update_requests.status = 'rejected'
+            ORDER BY event_update_requests.id DESC
+            LIMIT 1
+        ) AS edit_rejection_reason
     FROM events
 
-    LEFT JOIN categories 
+    LEFT JOIN categories
         ON events.category_id = categories.id
 
-    LEFT JOIN cities 
+    LEFT JOIN cities
         ON events.city_id = cities.id
 ";
 

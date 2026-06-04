@@ -29,10 +29,14 @@ function uploadEventImage(array $file, string $uploadDir, string $uploadUrlBase)
 {
     if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) return null;
     if ($file['error'] !== UPLOAD_ERR_OK) return null;
+    if (($file['size'] ?? 0) <= 0 || ($file['size'] ?? 0) > 5 * 1024 * 1024) return null;
 
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     $extension = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
     if (!in_array($extension, $allowedExtensions, true)) return null;
+    $mimeType = mime_content_type($file['tmp_name']);
+    if (!in_array($mimeType, $allowedMimeTypes, true) || @getimagesize($file['tmp_name']) === false) return null;
 
     if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
@@ -50,6 +54,7 @@ function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBas
     $names    = $files['name']    ?? [];
     $tmpNames = $files['tmp_name'] ?? [];
     $errs     = $files['error']   ?? [];
+    $sizes    = $files['size']    ?? [];
 
     if (!is_array($names)) return $uploaded;
 
@@ -58,6 +63,7 @@ function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBas
             'name'     => $name,
             'tmp_name' => $tmpNames[$index] ?? '',
             'error'    => $errs[$index]     ?? UPLOAD_ERR_NO_FILE,
+            'size'     => $sizes[$index]    ?? 0,
         ];
         $path = uploadEventImage($file, $uploadDir, $uploadUrlBase);
         if ($path !== null) $uploaded[] = $path;
@@ -164,9 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "
             INSERT INTO events (
                 title, description, category_id, city_id, user_id,
-                start_date, end_date, location, thumnail, gallery_carousel, view_count, is_favourite
+                start_date, end_date, location, thumnail, gallery_carousel, view_count, is_favourite, status
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved'
             )
         "
         );

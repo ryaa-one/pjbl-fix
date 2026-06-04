@@ -5,6 +5,15 @@ function auth_start_session(): void
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
+
+    if (isset($_SESSION['level'])) {
+        $_SESSION['level'] = auth_normalize_role((string) $_SESSION['level']);
+    }
+}
+
+function auth_normalize_role(string $role): string
+{
+    return $role === 'super_admin' ? 'admin' : $role;
 }
 
 function auth_disable_cache(): void
@@ -25,8 +34,7 @@ function auth_login_path(): string
 
     if (
         strpos($scriptName, '/admin/') !== false
-        || strpos($scriptName, '/super admin/') !== false
-        || strpos($scriptName, '/super%20admin/') !== false
+        || strpos($scriptName, '/user/') !== false
     ) {
         return '../../login.php';
     }

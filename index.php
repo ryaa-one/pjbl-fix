@@ -86,6 +86,7 @@ $queryIndexCategories = "
     COUNT(events.id) AS total_events
   FROM categories
   INNER JOIN events ON events.category_id = categories.id
+    AND events.status = 'approved'
   GROUP BY categories.id, categories.name
   HAVING COUNT(events.id) > 0
   ORDER BY categories.name ASC
@@ -111,6 +112,7 @@ $queryPopularEvents = "
   FROM (
     SELECT *
     FROM events
+    WHERE status = 'approved'
     ORDER BY {$popularEventViewColumn} DESC, id DESC
     LIMIT 3
   ) AS events
@@ -132,7 +134,8 @@ $queryUpcomingEvents = "
     COALESCE(categories.name, 'Tanpa kategori') AS category_name
   FROM events
   LEFT JOIN categories ON events.category_id = categories.id
-  WHERE events.start_date > NOW()
+  WHERE events.status = 'approved'
+    AND events.start_date > NOW()
   ORDER BY events.start_date ASC, events.id ASC
   LIMIT 3
 ";
@@ -245,9 +248,13 @@ $popularSectionLayouts = [
             </div>
           <?php endforeach; ?>
 
-          <div class="event-title <?= htmlspecialchars($layout['title']) ?>">
+          <a
+            class="event-title <?= htmlspecialchars($layout['title']) ?>"
+            href="detailEvent.php?id=<?= urlencode((string) $event['id']) ?>"
+            aria-label="Lihat detail event <?= htmlspecialchars($event['title']) ?>"
+          >
             <?= htmlspecialchars($event['title']) ?>
-          </div>
+          </a>
           <div class="event-line <?= htmlspecialchars($layout['line']) ?>"></div>
           <p class="event-description <?= htmlspecialchars($layout['desc']) ?>">
             <?= htmlspecialchars(buildIndexEventDescription($event['description'] ?? null)) ?>

@@ -658,6 +658,17 @@ Get developer-friendly React or HTML/CSS code for this project at: https://proje
         position: absolute;
         text-align: left;
       }
+
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .masuk,
+      .masuk * {
+        max-width: 100vw;
+      }
     </style>
   </head>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -812,4 +823,3 @@ Get developer-friendly React or HTML/CSS code for this project at: https://proje
     ></script>
   </body>
 </html>
-

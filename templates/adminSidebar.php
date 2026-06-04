@@ -1,26 +1,6 @@
 <?php
 $adminActive = $adminActive ?? "";
-$path_prefix = '';
-if (strpos($_SERVER['PHP_SELF'], '/admin/') !== false) {
-    $path_prefix = '../';
-}
-
-if ($adminActive === '') {
-    $currentPage = basename($_SERVER['PHP_SELF']);
-    $currentDir = dirname($_SERVER['PHP_SELF']);
-
-    if ($currentPage === 'dashboard.php') {
-        $adminActive = 'dashboard';
-    } elseif (in_array($currentPage, ['event.php', 'create.php', 'edit.php'], true)) {
-        $adminActive = 'event';
-    } elseif (strpos($currentDir, '/admin/ulasan') !== false) {
-        $adminActive = 'ulasan';
-    } elseif (strpos($currentDir, '/admin/user') !== false || in_array($currentPage, ['index.php', 'create.php', 'edit.php'], true)) {
-        $adminActive = 'user';
-    } elseif ($currentPage === 'pengaturanAkunAdmin.php') {
-        $adminActive = 'pengaturan';
-    }
-}
+$path_prefix = '../';
 ?>
 <aside class="admin-sidebar" aria-label="Navigasi admin">
     <nav class="admin-sidebar__nav">
@@ -28,17 +8,17 @@ if ($adminActive === '') {
             <img src="<?= $path_prefix ?>../assets/images/iconDashboard.png" alt="Dashboard">
             Dashboard
         </a>
+        <a class="admin-sidebar__link <?= $adminActive === 'admin' ? 'is-active' : '' ?>" href="<?= $path_prefix ?>admin">
+            <img src="<?= $path_prefix ?>../assets/images/IconPengaturan.png" alt="User">
+            Kelola User
+        </a>
         <a class="admin-sidebar__link <?= $adminActive === 'event' ? 'is-active' : '' ?>" href="<?= $path_prefix ?>event">
             <img src="<?= $path_prefix ?>../assets/images/IconEvent.png" alt="Event">
-            Event
-        </a>
-        <a class="admin-sidebar__link <?= $adminActive === 'user' ? 'is-active' : '' ?>" href="<?= $path_prefix ?>user">
-            <img src="<?= $path_prefix ?>../assets/images/logo-namaPengguna.png" alt="User">
-            User
+            Kelola Event
         </a>
         <a class="admin-sidebar__link <?= $adminActive === 'ulasan' ? 'is-active' : '' ?>" href="<?= $path_prefix ?>ulasan">
             <img src="<?= $path_prefix ?>../assets/images/logo-review.svg" alt="Ulasan">
-            Ulasan
+            Kelola Ulasan
         </a>
         <a class="admin-sidebar__link <?= $adminActive === 'pengaturan' ? 'is-active' : '' ?>" href="<?= $path_prefix ?>pengaturan">
             <img src="<?= $path_prefix ?>../assets/images/IconPengaturan.png" alt="Pengaturan">

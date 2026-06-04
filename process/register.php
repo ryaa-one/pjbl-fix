@@ -28,10 +28,19 @@ function checkExistingAccount($email)
 {
     global $koneksi;
 
-    $query = "SELECT * FROM users WHERE email = '$email'";
-    $exec = mysqli_query($koneksi, $query);
+    $stmt = mysqli_prepare($koneksi, "SELECT id FROM users WHERE email = ? LIMIT 1");
+    if (! $stmt) {
+        echo "Registrasi gagal diproses";
+        exit();
+    }
 
-    if (mysqli_num_rows($exec) > 0) {
+    mysqli_stmt_bind_param($stmt, 's', $email);
+    mysqli_stmt_execute($stmt);
+    $exec = mysqli_stmt_get_result($stmt);
+    $existingUser = $exec ? mysqli_fetch_assoc($exec) : null;
+    mysqli_stmt_close($stmt);
+
+    if ($existingUser) {
         echo "Email sudah terdaftar";
         exit();
     }
@@ -45,17 +54,41 @@ function createUser($email, $password, $nama)
     $password = password_hash($password, PASSWORD_DEFAULT);
 
     // create user
-    $queryCreateUser = "INSERT INTO users (email, password, name, whatsapp, instagram, profile_photo, level) VALUES ('$email', '$password', '$nama', '', '', '', 'user')";
-    $execCreateUser = mysqli_query($koneksi, $queryCreateUser);
+    $stmtCreateUser = mysqli_prepare(
+        $koneksi,
+        "INSERT INTO users (email, password, name, whatsapp, instagram, profile_photo, level) VALUES (?, ?, ?, '', '', '', 'user')"
+    );
+    if (! $stmtCreateUser) {
+        echo "Data gagal ditambahkan";
+        exit();
+    }
+
+    mysqli_stmt_bind_param($stmtCreateUser, 'sss', $email, $password, $nama);
+    $execCreateUser = mysqli_stmt_execute($stmtCreateUser);
+    mysqli_stmt_close($stmtCreateUser);
+
     if ($execCreateUser) {
 
         // ambil data user
-        $queryGetUser = "SELECT * FROM users WHERE email = '$email'";
-        $execGetUser = mysqli_query($koneksi, $queryGetUser);
-        $user = mysqli_fetch_assoc($execGetUser);
+        $stmtGetUser = mysqli_prepare($koneksi, "SELECT * FROM users WHERE email = ? LIMIT 1");
+        if (! $stmtGetUser) {
+            echo "Data user gagal dimuat";
+            exit();
+        }
+
+        mysqli_stmt_bind_param($stmtGetUser, 's', $email);
+        mysqli_stmt_execute($stmtGetUser);
+        $execGetUser = mysqli_stmt_get_result($stmtGetUser);
+        $user = $execGetUser ? mysqli_fetch_assoc($execGetUser) : null;
+        mysqli_stmt_close($stmtGetUser);
 
         // masukkan data user ke session
      
+        if (! $user) {
+            echo "Data user gagal dimuat";
+            exit();
+        }
+
         session_regenerate_id(true);
         syncUserSession($user);
         header("Location: ../index.php");

@@ -4,6 +4,9 @@ require_once __DIR__ . '/../includes/profile_photo.php';
 auth_start_session();
 
 include '../config/database.php';
+include_once '../includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 header('Content-Type: application/json');
 
@@ -17,6 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_login_json();
+
+if (! in_array(($_SESSION['level'] ?? ''), ['user', 'admin'], true)) {
+    auth_json_error(403, 'Anda tidak memiliki akses untuk menambahkan ulasan.');
+}
 
 $eventId = isset($_POST['event_id']) ? (int) $_POST['event_id'] : 0;
 $userId = (int) $_SESSION['user_id'];
@@ -50,7 +57,7 @@ if ($reviewDescription === '') {
     exit();
 }
 
-$queryCheckEvent = "SELECT id FROM events WHERE id = ? LIMIT 1";
+$queryCheckEvent = "SELECT id FROM events WHERE id = ? AND status = 'approved' LIMIT 1";
 $stmtCheckEvent = mysqli_prepare($koneksi, $queryCheckEvent);
 
 if (! $stmtCheckEvent) {
@@ -137,6 +144,7 @@ if (! $stmtReview) {
             'stars' => str_repeat('★', $rating) . str_repeat('☆', 5 - $rating),
             'created_at_label' => date('d M Y H:i'),
             'admin_reply' => null,
+            'reply_by_role' => null,
             'can_delete' => true,
         ],
     ]);
@@ -172,6 +180,7 @@ echo json_encode([
         'stars' => str_repeat('★', (int) $review['rating']) . str_repeat('☆', 5 - (int) $review['rating']),
         'created_at_label' => date('d M Y H:i', strtotime((string) $review['created_at'])),
         'admin_reply' => null,
+        'reply_by_role' => null,
         'can_delete' => true,
     ],
 ]);

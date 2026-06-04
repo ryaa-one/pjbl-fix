@@ -8,6 +8,8 @@ body {
     background: #ffffff;
     font-family: 'Inter', sans-serif;
     color: #000;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 header {

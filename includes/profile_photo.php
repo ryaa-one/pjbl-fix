@@ -2,7 +2,7 @@
 
 function getDefaultProfilePhotoPath()
 {
-    return 'assets/images/foto-profil.svg';
+    return 'assets/images/default-profil.png';
 }
 
 function normalizeProfilePhotoPath($profilePhoto)
@@ -36,7 +36,9 @@ function syncUserSession($user)
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['email'] = $user['email'];
     $_SESSION['nama'] = $user['name'];
-    $_SESSION['level'] = $user['level'];
+    $_SESSION['level'] = function_exists('auth_normalize_role')
+        ? auth_normalize_role((string) $user['level'])
+        : ($user['level'] ?? '');
     $_SESSION['profile_photo'] = trim((string) ($user['profile_photo'] ?? '')) !== ''
         ? $user['profile_photo']
         : ($user['avatar'] ?? '');
@@ -70,7 +72,11 @@ function validateAndUploadProfilePhoto($file, $projectRoot)
     $allowedMimeTypes = ['image/jpeg', 'image/png'];
     $mimeType = mime_content_type($file['tmp_name']);
 
-    if (! in_array($extension, $allowedExtensions, true) || ! in_array($mimeType, $allowedMimeTypes, true)) {
+    if (
+        ! in_array($extension, $allowedExtensions, true)
+        || ! in_array($mimeType, $allowedMimeTypes, true)
+        || @getimagesize($file['tmp_name']) === false
+    ) {
         return [
             'success' => false,
             'message' => 'Format foto profil harus JPG atau PNG.',
@@ -108,7 +114,7 @@ function deleteProfilePhotoFile($profilePhoto, $projectRoot)
 {
     $profilePhoto = trim((string) $profilePhoto);
 
-    if ($profilePhoto === '') {
+    if ($profilePhoto === '' || strpos(str_replace('\\', '/', $profilePhoto), 'uploads/profile/') !== 0) {
         return;
     }
 

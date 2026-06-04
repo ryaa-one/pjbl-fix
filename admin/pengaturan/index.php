@@ -11,9 +11,9 @@ $userId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $errors = [];
 $successMessage = '';
 
-function fetchCurrentAdminProfile($koneksi, $userId)
+function fetchCurrentSuperAdminProfile($koneksi, $userId)
 {
-    $stmtUser = mysqli_prepare($koneksi, "SELECT id, name, email, level, profile_photo, whatsapp, instagram FROM users WHERE id = ? LIMIT 1");
+    $stmtUser = mysqli_prepare($koneksi, "SELECT id, name, email, level, profile_photo, whatsapp, instagram FROM users WHERE id = ? AND level = 'admin' LIMIT 1");
 
     if (! $stmtUser) {
         return null;
@@ -33,7 +33,7 @@ if ($userId <= 0) {
     exit();
 }
 
-$user = fetchCurrentAdminProfile($koneksi, $userId);
+$user = fetchCurrentSuperAdminProfile($koneksi, $userId);
 
 if (! $user) {
     $errors[] = "Data akun admin tidak ditemukan.";
@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
 
     if (empty($errors) && ! empty($uploadResult['path'])) {
         $newProfilePhoto = $uploadResult['path'];
+        $oldProfilePhoto = $user['profile_photo'] ?? '';
         $stmtUpdatePhoto = mysqli_prepare($koneksi, "UPDATE users SET profile_photo = ? WHERE id = ?");
 
         if (! $stmtUpdatePhoto) {
@@ -82,10 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
                 deleteProfilePhotoFile($newProfilePhoto, dirname(__DIR__, 2));
                 $errors[] = "Update foto profil gagal: " . mysqli_error($koneksi);
             } else {
-                $updatedUser = fetchCurrentAdminProfile($koneksi, $userId);
+                $updatedUser = fetchCurrentSuperAdminProfile($koneksi, $userId);
 
                 if ($updatedUser) {
                     syncUserSession($updatedUser);
+                }
+
+                if ($oldProfilePhoto !== $newProfilePhoto) {
+                    deleteProfilePhotoFile($oldProfilePhoto, dirname(__DIR__, 2));
                 }
 
                 header("Location: index.php?status=updated");
@@ -94,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         }
     }
 
-    $user = fetchCurrentAdminProfile($koneksi, $userId);
+    $user = fetchCurrentSuperAdminProfile($koneksi, $userId);
     if ($user) {
         $formData['name'] = $user['name'];
         $formData['email'] = $user['email'];
@@ -158,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
                 $params[] = $passwordHashed;
             }
 
-            $sql .= " WHERE id = ?";
+            $sql .= " WHERE id = ? AND level = 'admin'";
             $types .= "i";
             $params[] = $userId;
 
@@ -172,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
                 mysqli_stmt_close($stmtUpdateUser);
 
                 if ($execUpdateUser) {
-                    $updatedUser = fetchCurrentAdminProfile($koneksi, $userId);
+                    $updatedUser = fetchCurrentSuperAdminProfile($koneksi, $userId);
 
                     if ($updatedUser) {
                         syncUserSession($updatedUser);
@@ -187,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && ($_POST['form_type'] ?? ''
         }
     }
 
-    $user = fetchCurrentAdminProfile($koneksi, $userId);
+    $user = fetchCurrentSuperAdminProfile($koneksi, $userId);
     if ($user) {
         $formData['name'] = $user['name'];
         $formData['email'] = $user['email'];

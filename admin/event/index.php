@@ -3,11 +3,16 @@ $currentLevel = "admin";
 
 include '../../process/checkAuth.php';
 include '../../config/database.php';
-include '../../process/getEvent.php';
+include_once '../../includes/event_metrics.php';
+include_once '../../includes/event_moderation.php';
+ensureEventMetricsColumns($koneksi);
+ensureEventModerationTables($koneksi);
+include '../../process/getAdminEvent.php';
+include_once '../../includes/event_images.php';
 
 $statusMessage = "";
 $statusType = "success";
-$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+$currentAdminId = (int) $_SESSION['user_id'];
 
 function buildEventPaginationUrl(int $page): string
 {
@@ -16,22 +21,60 @@ function buildEventPaginationUrl(int $page): string
     return 'index.php?' . http_build_query($params);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moderate_event_id'], $_POST['moderation_action'])) {
+    $moderateEventId = (int) $_POST['moderate_event_id'];
+    $moderationAction = $_POST['moderation_action'] === 'approve' ? 'approved' : 'rejected';
+    $rejectionReason = trim($_POST['rejection_reason'] ?? '');
+
+    if ($moderationAction === 'rejected' && $rejectionReason === '') {
+        $statusMessage = "Alasan penolakan wajib diisi.";
+        $statusType = "error";
+    } else {
+        $stmtModerate = mysqli_prepare(
+            $koneksi,
+            "
+            UPDATE events
+            INNER JOIN users ON users.id = events.user_id
+            SET events.status = ?,
+                events.rejection_reason = ?
+            WHERE events.id = ?
+              AND users.level = 'user'
+              AND events.status = 'pending'
+            "
+        );
+
+        if ($stmtModerate) {
+            $reasonValue = $moderationAction === 'rejected' ? $rejectionReason : null;
+            mysqli_stmt_bind_param($stmtModerate, 'ssi', $moderationAction, $reasonValue, $moderateEventId);
+            $moderated = mysqli_stmt_execute($stmtModerate);
+            $moderatedRows = mysqli_stmt_affected_rows($stmtModerate);
+            mysqli_stmt_close($stmtModerate);
+        } else {
+            $reasonValue = null;
+            $moderated = false;
+            $moderatedRows = 0;
+        }
+
+        if ($moderated && $moderatedRows > 0) {
+            $historyAction = $moderationAction === 'approved' ? 'event_approved' : 'event_rejected';
+            $stmtHistory = mysqli_prepare($koneksi, "INSERT INTO event_moderation_history (event_id, admin_id, action, reason) VALUES (?, ?, ?, ?)");
+            mysqli_stmt_bind_param($stmtHistory, 'iiss', $moderateEventId, $currentAdminId, $historyAction, $reasonValue);
+            mysqli_stmt_execute($stmtHistory);
+            mysqli_stmt_close($stmtHistory);
+            header("Location: index.php?status=moderated");
+            exit();
+        }
+
+        $statusMessage = "Status event gagal diperbarui atau event tidak membutuhkan approval.";
+        $statusType = "error";
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_event_id'])) {
 
     $deleteEventId = (int) $_POST['delete_event_id'];
 
-    $stmtDeleteEvent = mysqli_prepare($koneksi, "DELETE FROM events WHERE events.id = ? AND events.user_id = ?");
-    if ($stmtDeleteEvent) {
-        mysqli_stmt_bind_param($stmtDeleteEvent, 'ii', $deleteEventId, $currentAdminId);
-        $execDeleteEvent = mysqli_stmt_execute($stmtDeleteEvent);
-        $affectedRows = mysqli_stmt_affected_rows($stmtDeleteEvent);
-        mysqli_stmt_close($stmtDeleteEvent);
-    } else {
-        $execDeleteEvent = false;
-        $affectedRows = 0;
-    }
+    $execDeleteEvent = deleteEventWithRelations($koneksi, $deleteEventId, dirname(__DIR__, 2));
 
-    if ($execDeleteEvent && $affectedRows > 0) {
+    if ($execDeleteEvent) {
         header("Location: index.php?status=deleted");
         exit();
     }
@@ -48,6 +91,8 @@ if ($statusMessage === "" && isset($_GET['status'])) {
         $statusMessage = "Event baru berhasil ditambahkan.";
     } elseif ($_GET['status'] === 'updated') {
         $statusMessage = "Data event berhasil diperbarui.";
+    } elseif ($_GET['status'] === 'moderated') {
+        $statusMessage = "Status event berhasil diperbarui.";
     }
 }
 ?>
@@ -89,13 +134,16 @@ if ($statusMessage === "" && isset($_GET['status'])) {
         <div class="admin-page-header events-header">
           <h1 class="admin-page-title">Events</h1>
 
-          <a 
-            class="admin-button admin-button--primary add-event-button" 
-            href="create.php"
-          >
-            <span aria-hidden="true">+</span>
-            Add Event
-          </a>
+          <div class="events-header__actions">
+            <a
+              class="admin-button admin-button--primary add-event-button"
+              href="create.php"
+            >
+              <span aria-hidden="true">+</span>
+              Add Event
+            </a>
+            <a class="admin-button admin-button--secondary add-event-button" href="requests.php">Request Edit & Riwayat</a>
+          </div>
         </div>
 
         <?php if ($statusMessage !== ""): ?>
@@ -106,12 +154,12 @@ if ($statusMessage === "" && isset($_GET['status'])) {
 
         <form class="admin-toolbar" method="get" action="">
           <div class="admin-search">
-            <svg 
-              class="admin-search__icon" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              stroke-width="1.8" 
+            <svg
+              class="admin-search__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
               aria-hidden="true"
             >
               <circle cx="11" cy="11" r="7"></circle>
@@ -140,13 +188,17 @@ if ($statusMessage === "" && isset($_GET['status'])) {
             <option value="category" <?= $sort === 'category' ? 'selected' : '' ?>>Urutkan: Kategori</option>
             <option value="date" <?= $sort === 'date' ? 'selected' : '' ?>>Urutkan: Tanggal</option>
             <option value="location" <?= $sort === 'location' ? 'selected' : '' ?>>Urutkan: Lokasi</option>
+            <option value="admin" <?= $sort === 'admin' ? 'selected' : '' ?>>Urutkan: Penginput</option>
           </select>
           <select class="admin-field admin-toolbar__select" name="direction">
             <option value="asc" <?= $direction === 'asc' ? 'selected' : '' ?>>A-Z / Lama-Baru</option>
             <option value="desc" <?= $direction === 'desc' ? 'selected' : '' ?>>Z-A / Baru-Lama</option>
           </select>
+          <?php renderRowsPerPageSelect($perPage); ?>
           <button class="admin-button admin-button--secondary admin-toolbar__button" type="submit">Terapkan</button>
         </form>
+
+        <?php $pendingEditEvents = []; ?>
 
         <div class="events-table-wrap">
 
@@ -159,6 +211,8 @@ if ($statusMessage === "" && isset($_GET['status'])) {
                 <th class="col-category">Category</th>
                 <th class="col-date">Date</th>
                 <th class="col-location">Location</th>
+                <th class="col-category">Penginput</th>
+                <th class="col-category">Status</th>
                 <th class="col-actions">Actions</th>
               </tr>
             </thead>
@@ -190,6 +244,27 @@ if ($statusMessage === "" && isset($_GET['status'])) {
                     <td class="events-table__muted col-location">
                       <?= htmlspecialchars($event['location']) ?>
                     </td>
+                    <td class="col-category">
+                      <span class="category-badge category-badge--admin">
+                        <?= htmlspecialchars($event['admin_name']) ?>
+                      </span>
+                    </td>
+                    <td class="col-category">
+                      <?php
+                        $pendingEditRequestId = (int) ($event['pending_edit_request_id'] ?? 0);
+                        $eventStatusLabel = $pendingEditRequestId > 0 ? 'Pending Edit' : ucfirst((string) $event['status']);
+                        if ($pendingEditRequestId > 0) {
+                            $pendingEditEvents[] = [
+                                'request_id' => $pendingEditRequestId,
+                                'event_title' => $event['title'],
+                                'submitted_title' => $event['pending_edit_title'] ?: $event['title'],
+                                'admin_name' => $event['admin_name'],
+                            ];
+                        }
+                      ?>
+                      <span class="category-badge"><?= htmlspecialchars($eventStatusLabel) ?></span>
+                      <?php if (! empty($event['rejection_reason'])): ?><small><?= htmlspecialchars($event['rejection_reason']) ?></small><?php endif; ?>
+                    </td>
 
                     <td class="col-actions">
 
@@ -202,6 +277,17 @@ if ($statusMessage === "" && isset($_GET['status'])) {
                         >
                           Edit
                         </a>
+
+                        <?php if ($pendingEditRequestId > 0): ?>
+                          <span class="table-action-separator"></span>
+
+                          <a
+                            class="table-action table-action--edit"
+                            href="requests.php?request_id=<?= $pendingEditRequestId ?>"
+                          >
+                            Review Edit
+                          </a>
+                        <?php endif; ?>
 
                         <span class="table-action-separator"></span>
 
@@ -226,6 +312,20 @@ if ($statusMessage === "" && isset($_GET['status'])) {
 
                         </form>
 
+                        <?php if (($event['creator_level'] ?? '') === 'user' && ($event['status'] ?? '') === 'pending' && $pendingEditRequestId <= 0): ?>
+                          <form method="post" action="">
+                            <input type="hidden" name="moderate_event_id" value="<?= (int) $event['id'] ?>">
+                            <input type="hidden" name="moderation_action" value="approve">
+                            <button class="table-action table-action--edit" type="submit">Approve</button>
+                          </form>
+                          <form method="post" action="" onsubmit="const reason = prompt('Alasan penolakan event:'); if (!reason) return false; this.rejection_reason.value = reason;">
+                            <input type="hidden" name="moderate_event_id" value="<?= (int) $event['id'] ?>">
+                            <input type="hidden" name="moderation_action" value="reject">
+                            <input type="hidden" name="rejection_reason" value="">
+                            <button class="table-action table-action--delete" type="submit">Reject</button>
+                          </form>
+                        <?php endif; ?>
+
                       </div>
 
                     </td>
@@ -237,7 +337,7 @@ if ($statusMessage === "" && isset($_GET['status'])) {
               <?php else: ?>
 
                 <tr>
-                  <td class="empty-state" colspan="6">
+                  <td class="empty-state" colspan="8">
                     Belum ada data event yang cocok.
                   </td>
                 </tr>
@@ -249,6 +349,46 @@ if ($statusMessage === "" && isset($_GET['status'])) {
           </table>
 
         </div>
+
+        <?php if (! empty($pendingEditEvents)): ?>
+          <section class="pending-edit-summary" aria-labelledby="pending-edit-summary-title">
+            <div class="pending-edit-summary__header">
+              <h2 id="pending-edit-summary-title">Pengajuan Edit Event</h2>
+            </div>
+            <div class="pending-edit-summary__table-wrap">
+              <table class="events-table pending-edit-summary__table">
+                <thead>
+                  <tr>
+                    <th class="col-number">No</th>
+                    <th>Event Saat Ini</th>
+                    <th>Edit Diajukan</th>
+                    <th>Penginput</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($pendingEditEvents as $index => $pendingEdit): ?>
+                    <tr>
+                      <td class="events-table__muted col-number"><?= $index + 1 ?></td>
+                      <td><?= htmlspecialchars($pendingEdit['event_title']) ?></td>
+                      <td><?= htmlspecialchars($pendingEdit['submitted_title']) ?></td>
+                      <td>
+                        <span class="category-badge category-badge--admin"><?= htmlspecialchars($pendingEdit['admin_name']) ?></span>
+                      </td>
+                      <td>
+                        <span class="category-badge">Pending Edit</span>
+                      </td>
+                      <td>
+                        <a class="table-action table-action--edit" href="requests.php?request_id=<?= (int) $pendingEdit['request_id'] ?>">Review Edit</a>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <?php endif; ?>
 
         <?php if ($totalEventPages > 1): ?>
           <nav class="admin-pagination" aria-label="Pagination event">

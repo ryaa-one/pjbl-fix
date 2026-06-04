@@ -41,6 +41,7 @@ $queryEvent = "
   LEFT JOIN cities ON events.city_id = cities.id
   LEFT JOIN users AS event_admin ON events.user_id = event_admin.id
   WHERE events.id = ?
+    AND events.status = 'approved'
   LIMIT 1
 ";
 
@@ -110,6 +111,7 @@ $queryReviews = "
     event_reviews.review_description,
     event_reviews.rating,
     event_reviews.admin_reply,
+    event_reviews.reply_by_role,
     event_reviews.created_at,
     users.name AS user_name,
     users.profile_photo AS user_profile_photo
@@ -170,8 +172,8 @@ $adminWhatsappUrl = $adminWhatsapp !== '' ? 'https://wa.me/' . $adminWhatsapp : 
 $adminInstagramUrl = $adminInstagram !== '' ? 'https://instagram.com/' . rawurlencode($adminInstagram) : '';
 $isEventOwner = $currentUserId > 0 && (int) $event['user_id'] === $currentUserId;
 $currentUserRole = (string) ($_SESSION['level'] ?? '');
-$canManageEventReplies = $currentUserRole === 'admin' && $isEventOwner;
-$canModerateReviews = $currentUserRole === 'super_admin';
+$canManageEventReplies = $currentUserRole === 'user' && $isEventOwner;
+$canModerateReviews = $currentUserRole === 'admin';
 
 function renderStars($rating)
 {
@@ -416,7 +418,8 @@ function formatReviewDate($value)
                 <div class="stars" aria-label="Rating <?= (int) $review['rating'] ?> dari 5">
                   <?= htmlspecialchars(renderStars($review['rating'])) ?>
                 </div>
-                <?php if ($canManageEventReplies || $canModerateReviews): ?>
+                <?php $canManageThisReview = $canManageEventReplies && (int) $review['user_id'] !== $currentUserId; ?>
+                <?php if ($canManageThisReview || $canModerateReviews): ?>
                   <div class="review-menu">
                     <button
                       class="review-menu__trigger"
@@ -426,14 +429,10 @@ function formatReviewDate($value)
                       data-review-menu-trigger
                     >&#8942;</button>
                     <div class="review-menu__dropdown" data-review-menu hidden>
-                      <?php if ($canManageEventReplies): ?>
+                      <?php if ($canManageThisReview || $canModerateReviews): ?>
                         <button class="review-menu__item" type="button" data-review-reply-open>
                           <?= empty($review['admin_reply']) ? 'Balas Ulasan' : 'Edit Balasan' ?>
                         </button>
-                        <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>
-                          Hapus Ulasan
-                        </button>
-                      <?php elseif ($canModerateReviews): ?>
                         <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>
                           Hapus Ulasan
                         </button>
@@ -446,13 +445,13 @@ function formatReviewDate($value)
             <p class="review-text"><?= nl2br(htmlspecialchars($review['review_description'])) ?></p>
             <?php if (! empty($review['admin_reply'])): ?>
               <div class="review-admin-reply" data-review-reply-display>
-                <p class="review-admin-reply__label">Balasan Admin</p>
+                <p class="review-admin-reply__label" data-review-reply-label><?= ($review['reply_by_role'] ?? 'user') === 'admin' ? 'Balasan Admin' : 'Balasan Pemilik Event' ?></p>
                 <p class="review-admin-reply__text" data-review-reply-text><?= nl2br(htmlspecialchars($review['admin_reply'])) ?></p>
               </div>
             <?php endif; ?>
-            <?php if ($canManageEventReplies): ?>
+            <?php if ($canManageThisReview || $canModerateReviews): ?>
               <form class="review-reply-editor" data-review-reply-editor hidden>
-                <label class="review-reply-editor__label">Balasan Admin</label>
+                <label class="review-reply-editor__label"><?= $canModerateReviews ? 'Balasan Admin' : 'Balasan Pemilik Event' ?></label>
                 <textarea class="review-reply-editor__field" name="admin_reply" placeholder="Tulis balasan ulasan..."><?= htmlspecialchars($review['admin_reply'] ?? '') ?></textarea>
                 <p class="review-reply-editor__feedback" data-review-reply-feedback aria-live="polite"></p>
                 <div class="review-reply-editor__actions">
@@ -642,11 +641,12 @@ function formatReviewDate($value)
       }
 
       function buildReviewRoleMenu(review) {
-        if (!canManageEventReplies && !canModerateReviews) {
+        const canManageThisReview = canManageEventReplies && !review.can_delete;
+        if (!canManageThisReview && !canModerateReviews) {
           return '';
         }
 
-        const menuItem = canManageEventReplies
+        const menuItem = canManageThisReview || canModerateReviews
           ? `
             <button class="review-menu__item" type="button" data-review-reply-open>${review.admin_reply ? 'Edit Balasan' : 'Balas Ulasan'}</button>
             <button class="review-menu__item review-menu__item--danger" type="button" data-review-moderate-delete>Hapus Ulasan</button>
@@ -661,27 +661,27 @@ function formatReviewDate($value)
         `;
       }
 
-      function buildReviewReplyDisplay(adminReply) {
+      function buildReviewReplyDisplay(adminReply, replyByRole = 'user') {
         if (!adminReply) {
           return '';
         }
 
         return `
           <div class="review-admin-reply" data-review-reply-display>
-            <p class="review-admin-reply__label">Balasan Admin</p>
+            <p class="review-admin-reply__label" data-review-reply-label>${replyByRole === 'admin' ? 'Balasan Admin' : 'Balasan Pemilik Event'}</p>
             <p class="review-admin-reply__text" data-review-reply-text>${escapeHtml(adminReply).replace(/\n/g, '<br>')}</p>
           </div>
         `;
       }
 
       function buildReviewReplyEditor(adminReply) {
-        if (!canManageEventReplies) {
+        if (!canManageEventReplies && !canModerateReviews) {
           return '';
         }
 
         return `
           <form class="review-reply-editor" data-review-reply-editor hidden>
-            <label class="review-reply-editor__label">Balasan Admin</label>
+            <label class="review-reply-editor__label">${canModerateReviews ? 'Balasan Admin' : 'Balasan Pemilik Event'}</label>
             <textarea class="review-reply-editor__field" name="admin_reply" placeholder="Tulis balasan ulasan...">${escapeHtml(adminReply || '')}</textarea>
             <p class="review-reply-editor__feedback" data-review-reply-feedback aria-live="polite"></p>
             <div class="review-reply-editor__actions">
@@ -711,7 +711,7 @@ function formatReviewDate($value)
               </div>
             </div>
             <p class="review-text">${escapeHtml(review.review_description).replace(/\n/g, '<br>')}</p>
-            ${buildReviewReplyDisplay(review.admin_reply)}
+            ${buildReviewReplyDisplay(review.admin_reply, review.reply_by_role)}
             ${buildReviewReplyEditor(review.admin_reply)}
             ${review.can_delete ? `<div class="review-actions"><button class="review-delete-button" type="button" data-review-delete="${review.id}">Hapus</button></div>` : ''}
           </article>
@@ -776,13 +776,17 @@ function formatReviewDate($value)
 
           let replyDisplay = reviewCard.querySelector('[data-review-reply-display]');
           if (!replyDisplay) {
-            editor.insertAdjacentHTML('beforebegin', buildReviewReplyDisplay(result.admin_reply));
+            editor.insertAdjacentHTML('beforebegin', buildReviewReplyDisplay(result.admin_reply, result.reply_by_role));
             replyDisplay = reviewCard.querySelector('[data-review-reply-display]');
           }
 
           const replyText = replyDisplay?.querySelector('[data-review-reply-text]');
           if (replyText) {
             replyText.innerHTML = escapeHtml(result.admin_reply).replace(/\n/g, '<br>');
+            const replyLabel = replyDisplay.querySelector('[data-review-reply-label]');
+            if (replyLabel) {
+              replyLabel.textContent = result.reply_by_role === 'admin' ? 'Balasan Admin' : 'Balasan Pemilik Event';
+            }
           }
 
           const menuItem = reviewCard.querySelector('[data-review-reply-open]');

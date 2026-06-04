@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS event_reviews (
     review_description TEXT NOT NULL,
     rating TINYINT UNSIGNED NOT NULL,
     admin_reply TEXT NULL,
+    reply_by_role ENUM('user', 'admin') NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_event_reviews_event_id (event_id),
     INDEX idx_event_reviews_user_id (user_id)
@@ -151,7 +152,8 @@ CREATE TABLE IF NOT EXISTS event_favourites (
     user_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_event_favourites_event_id (event_id),
-    INDEX idx_event_favourites_user_id (user_id)
+    INDEX idx_event_favourites_user_id (user_id),
+    UNIQUE KEY uq_event_favourites_event_user (event_id, user_id)
 );
 
 -- ── Tabel event_likes ─────────────────────────────────────────────────────────
@@ -161,5 +163,6 @@ CREATE TABLE IF NOT EXISTS event_likes (
     user_id INT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_event_likes_event_id (event_id),
-    INDEX idx_event_likes_user_id (user_id)
+    INDEX idx_event_likes_user_id (user_id),
+    UNIQUE KEY uq_event_likes_event_user (event_id, user_id)
 );

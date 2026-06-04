@@ -13,8 +13,8 @@
   --admin-border: #d9dee7;
   --admin-danger: #c32026;
   --admin-danger-soft: #f9e3e4;
-  --admin-primary: #2e2ee8;
-  --admin-primary-hover: #2323cf;
+  --admin-primary: #b31919;
+  --admin-primary-hover: #8a1515;
   --admin-success: #22c55e;
   --admin-shadow:
     0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 14px rgba(16, 24, 40, 0.08);
@@ -31,6 +31,8 @@ body {
   background: var(--admin-bg);
   color: var(--admin-text);
   font-family: "Inter", sans-serif;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body.admin-edit-modal-open {
@@ -54,6 +56,9 @@ textarea {
   gap: 18px;
   min-height: calc(100vh - var(--admin-navbar-height));
   padding: 30px 74px 56px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .admin-sidebar {
@@ -107,6 +112,7 @@ textarea {
   flex: 1;
   max-width: var(--admin-content-width);
   min-width: 0;
+  width: 100%;
 }
 
 .admin-page-title {
@@ -311,13 +317,17 @@ textarea.admin-field {
 }
 
 .admin-edit-modal {
+  --admin-edit-modal-top-gap: 104px;
+  --admin-edit-modal-side-gap: 32px;
+  --admin-edit-modal-bottom-gap: 28px;
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: none;
-  padding: 32px;
-  align-items: center;
+  padding: var(--admin-edit-modal-top-gap) var(--admin-edit-modal-side-gap) var(--admin-edit-modal-bottom-gap);
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
 }
 
 .admin-edit-modal.is-open {
@@ -336,8 +346,8 @@ textarea.admin-field {
 .admin-edit-modal__dialog {
   position: relative;
   width: min(720px, 100%);
-  height: min(700px, calc(100vh - 64px));
-  max-height: calc(100vh - 64px);
+  height: min(700px, calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap)));
+  max-height: calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -347,15 +357,15 @@ textarea.admin-field {
   box-shadow:
     0 22px 55px rgba(15, 23, 42, 0.24),
     0 6px 18px rgba(15, 23, 42, 0.12);
-  transform: translateY(18px);
 }
 
 .admin-edit-modal__dialog--wide {
   width: min(1040px, 100%);
-  height: min(760px, calc(100vh - 64px));
+  height: min(760px, calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap)));
 }
 
 .admin-edit-modal__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -408,24 +418,34 @@ textarea.admin-field {
 }
 
 body.admin-edit-modal-page {
-  min-height: auto;
+  height: 100vh;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: auto;
   background: #ffffff;
 }
 
 body.admin-edit-modal-page .admin-layout {
   display: block;
-  min-height: auto;
+  min-height: 100%;
   padding: 24px;
 }
 
 body.admin-edit-modal-page .admin-content {
   max-width: none;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 body.admin-edit-modal-page .admin-form {
+  min-height: 0;
   display: grid;
   gap: 18px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 body.admin-edit-modal-page .admin-form__group,
@@ -540,6 +560,7 @@ body.admin-edit-modal-page .admin-button--primary {
   .admin-layout {
     padding: 24px;
     gap: 22px;
+    overflow-x: hidden;
   }
 
   .admin-content {
@@ -549,17 +570,17 @@ body.admin-edit-modal-page .admin-button--primary {
 
 @media (max-width: 760px) {
   .admin-edit-modal {
-    align-items: flex-end;
-    padding: 18px;
+    --admin-edit-modal-top-gap: 84px;
+    --admin-edit-modal-side-gap: 18px;
+    --admin-edit-modal-bottom-gap: 18px;
   }
 
   .admin-edit-modal__dialog,
   .admin-edit-modal__dialog--wide {
     width: 100%;
-    height: min(92vh, 760px);
-    max-height: 92vh;
+    height: min(760px, calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap)));
+    max-height: calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap));
     border-radius: 20px;
-    transform: none;
   }
 
   .admin-edit-modal__header {
@@ -626,13 +647,15 @@ body.admin-edit-modal-page .admin-button--primary {
 
 @media (max-width: 600px) {
   .admin-edit-modal {
-    padding: 8px;
+    --admin-edit-modal-top-gap: 74px;
+    --admin-edit-modal-side-gap: 8px;
+    --admin-edit-modal-bottom-gap: 8px;
   }
 
   .admin-edit-modal__dialog,
   .admin-edit-modal__dialog--wide {
-    height: calc(100vh - 16px);
-    max-height: calc(100vh - 16px);
+    height: calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap));
+    max-height: calc(100vh - var(--admin-edit-modal-top-gap) - var(--admin-edit-modal-bottom-gap));
     border-radius: 18px;
   }
 

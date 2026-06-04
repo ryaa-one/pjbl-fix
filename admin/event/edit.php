@@ -5,7 +5,6 @@ include '../../config/database.php';
 include '../../process/category.php';
 
 $eventId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
-$currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
 $isModal = isset($_GET['modal']) && $_GET['modal'] === '1';
 $errors = [];
 
@@ -32,13 +31,12 @@ $queryEvent = "
     LEFT JOIN categories ON events.category_id = categories.id
     LEFT JOIN cities ON events.city_id = cities.id
     WHERE events.id = ?
-      AND events.user_id = ?
     LIMIT 1
 ";
 
 $stmtEvent = mysqli_prepare($koneksi, $queryEvent);
 if ($stmtEvent) {
-    mysqli_stmt_bind_param($stmtEvent, 'ii', $eventId, $currentAdminId);
+    mysqli_stmt_bind_param($stmtEvent, 'i', $eventId);
     mysqli_stmt_execute($stmtEvent);
     $execEvent = mysqli_stmt_get_result($stmtEvent);
     $event = $execEvent ? mysqli_fetch_assoc($execEvent) : null;
@@ -79,14 +77,25 @@ if ($selectedProvinceId > 0) {
     }
 }
 
+function formatEventDateInput($value): string
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return '';
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp ? date('Y-m-d', $timestamp) : $value;
+}
+
 $formData = [
     'title' => $event['title'],
     'description' => $event['description'],
     'category_name' => $event['category_name'] ?? '',
     'province_id' => $selectedProvinceId,
     'city_id' => (int) ($event['city_id'] ?? 0),
-    'start_date' => $event['start_date'],
-    'end_date' => $event['end_date'],
+    'start_date' => formatEventDateInput($event['start_date']),
+    'end_date' => formatEventDateInput($event['end_date']),
     'location' => $event['location'],
     'thumnail' => $event['thumnail'],
     'gallery_carousel' => $event['gallery_carousel'] ?? '[]',
@@ -117,11 +126,14 @@ function getIndexedUploadFile(array $files, int $index): array
         'name' => $files['name'][$index] ?? '',
         'tmp_name' => $files['tmp_name'][$index] ?? '',
         'error' => $files['error'][$index] ?? UPLOAD_ERR_NO_FILE,
+        'size' => $files['size'][$index] ?? 0,
     ];
 }
 
 function deleteEventImageFile(string $imagePath, string $uploadDir, string $uploadUrlBase): void
 {
+    global $koneksi;
+
     $imagePath = trim($imagePath);
     if ($imagePath === '' || strpos($imagePath, $uploadUrlBase) !== 0) {
         return;
@@ -135,6 +147,20 @@ function deleteEventImageFile(string $imagePath, string $uploadDir, string $uplo
     $fileName = basename(parse_url($imagePath, PHP_URL_PATH) ?: $imagePath);
     if ($fileName === '' || $fileName === '.' || $fileName === '..') {
         return;
+    }
+
+    $stmtUsage = mysqli_prepare($koneksi, "SELECT id FROM events WHERE thumnail = ? OR gallery_carousel LIKE ? LIMIT 1");
+    if ($stmtUsage) {
+        $gallerySearch = '%"' . $imagePath . '"%';
+        mysqli_stmt_bind_param($stmtUsage, 'ss', $imagePath, $gallerySearch);
+        mysqli_stmt_execute($stmtUsage);
+        $usageResult = mysqli_stmt_get_result($stmtUsage);
+        $isUsed = $usageResult && mysqli_fetch_assoc($usageResult);
+        mysqli_stmt_close($stmtUsage);
+
+        if ($isUsed) {
+            return;
+        }
     }
 
     $targetPath = $uploadRoot . DIRECTORY_SEPARATOR . $fileName;
@@ -153,11 +179,21 @@ function uploadEventImage(array $file, string $uploadDir, string $uploadUrlBase)
         return null;
     }
 
+    if (($file['size'] ?? 0) <= 0 || ($file['size'] ?? 0) > 5 * 1024 * 1024) {
+        return null;
+    }
+
     $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     $originalName = $file['name'] ?? '';
     $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
     if (!in_array($extension, $allowedExtensions, true)) {
+        return null;
+    }
+
+    $mimeType = mime_content_type($file['tmp_name']);
+    if (!in_array($mimeType, $allowedMimeTypes, true) || @getimagesize($file['tmp_name']) === false) {
         return null;
     }
 
@@ -181,6 +217,7 @@ function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBas
     $names = $files['name'] ?? [];
     $tmpNames = $files['tmp_name'] ?? [];
     $errors = $files['error'] ?? [];
+    $sizes = $files['size'] ?? [];
 
     if (!is_array($names)) {
         return $uploaded;
@@ -191,6 +228,7 @@ function uploadEventImages(array $files, string $uploadDir, string $uploadUrlBas
             'name' => $name,
             'tmp_name' => $tmpNames[$index] ?? '',
             'error' => $errors[$index] ?? UPLOAD_ERR_NO_FILE,
+            'size' => $sizes[$index] ?? 0,
         ];
 
         $uploadedPath = uploadEventImage($file, $uploadDir, $uploadUrlBase);
@@ -330,14 +368,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 thumnail = ?,
                 gallery_carousel = ?
             WHERE events.id = ?
-              AND events.user_id = ?
         "
         );
 
         if ($stmtUpdateEvent) {
             mysqli_stmt_bind_param(
                 $stmtUpdateEvent,
-                'ssiisssssii',
+                'ssiisssssi',
                 $formData['title'],
                 $formData['description'],
                 $categoryId,
@@ -347,8 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formData['location'],
                 $formData['thumnail'],
                 $formData['gallery_carousel'],
-                $eventId,
-                $currentAdminId
+                $eventId
             );
 
             $execUpdateEvent = mysqli_stmt_execute($stmtUpdateEvent);

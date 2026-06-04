@@ -3,6 +3,9 @@ require_once __DIR__ . '/../includes/auth.php';
 auth_start_session();
 
 include '../config/database.php';
+include_once '../includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 header('Content-Type: application/json');
 
@@ -15,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-require_login_json();
+require_role_json('user');
 
 $eventId = isset($_POST['event_id']) ? (int) $_POST['event_id'] : 0;
 $userId = (int) $_SESSION['user_id'];
@@ -29,7 +32,7 @@ if ($eventId <= 0) {
     exit();
 }
 
-$queryCheckEvent = "SELECT id FROM events WHERE id = ? LIMIT 1";
+$queryCheckEvent = "SELECT id FROM events WHERE id = ? AND status = 'approved' LIMIT 1";
 $stmtCheckEvent = mysqli_prepare($koneksi, $queryCheckEvent);
 
 if (! $stmtCheckEvent) {
@@ -122,9 +125,19 @@ if (! $stmtInsert) {
 
 mysqli_stmt_bind_param($stmtInsert, 'ii', $eventId, $userId);
 $inserted = mysqli_stmt_execute($stmtInsert);
+$insertError = mysqli_stmt_errno($stmtInsert);
 mysqli_stmt_close($stmtInsert);
 
 if (! $inserted) {
+    if ($insertError === 1062) {
+        echo json_encode([
+            'success' => true,
+            'is_active' => true,
+            'message' => 'Event sudah ditandai sebagai disukai.',
+        ]);
+        exit();
+    }
+
     http_response_code(500);
     echo json_encode([
         'success' => false,

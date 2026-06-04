@@ -5,7 +5,7 @@
 }
 
 .admin-toolbar {
-  grid-template-columns: minmax(240px, 1.8fr) repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(240px, 1.8fr) repeat(4, minmax(0, 1fr)) auto;
 }
 
 .table-actions form {

@@ -3,8 +3,11 @@ $currentLevel = "admin";
 include '../../process/checkAuth.php';
 include '../../config/database.php';
 include_once '../../includes/event_metrics.php';
+include_once '../../includes/event_moderation.php';
+include_once '../../includes/pagination.php';
 
 ensureEventMetricsColumns($koneksi);
+ensureEventModerationTables($koneksi);
 ensureEventEngagementColumns($koneksi);
 
 $currentAdminId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
@@ -16,7 +19,7 @@ $likesChartValues = [];
 $likesLast30Days = 0;
 $likesPrevious30Days = 0;
 $dashboardEventPage = isset($_GET['event_page']) ? max(1, (int) $_GET['event_page']) : 1;
-$dashboardEventPerPage = 10;
+$dashboardEventPerPage = getRowsPerPage('admin_dashboard_events');
 $totalDashboardEvents = 0;
 $dashboardEvents = [];
 
@@ -26,6 +29,20 @@ function buildDashboardEventPaginationUrl(int $page): string
     $params['event_page'] = $page;
 
     return 'index.php?' . http_build_query($params);
+}
+
+function formatDashboardEventStatus(?string $status, int $pendingEditRequestId = 0): string
+{
+    if ($pendingEditRequestId > 0) {
+        return 'Pending Edit';
+    }
+
+    $status = trim((string) $status);
+    if ($status === '') {
+        return '-';
+    }
+
+    return ucwords(str_replace(['_', '-'], ' ', strtolower($status)));
 }
 
 $labelsByDate = [];
@@ -216,6 +233,142 @@ if ($stmtDashboardEvents) {
 
     mysqli_stmt_close($stmtDashboardEvents);
 }
+
+$totalEvents = 0;
+$totalUsers = 0;
+$totalReviews = 0;
+$totalPendingEvents = 0;
+$totalRejectedEvents = 0;
+$totalApprovedEvents = 0;
+$popularEvents = [];
+$topAdmins = [];
+$dashboardEvents = [];
+
+$summaryResult = mysqli_query(
+    $koneksi,
+    "
+    SELECT
+        (SELECT COUNT(*) FROM users WHERE level = 'user') AS total_users,
+        (SELECT COUNT(*) FROM events) AS total_events,
+        (SELECT COUNT(*) FROM event_reviews) AS total_reviews,
+        (
+            SELECT COUNT(*)
+            FROM events
+            WHERE status = 'pending'
+               OR EXISTS (
+                    SELECT 1
+                    FROM event_update_requests
+                    WHERE event_update_requests.event_id = events.id
+                      AND event_update_requests.user_id = events.user_id
+                      AND event_update_requests.status = 'pending'
+               )
+        ) AS total_pending_events,
+        (SELECT COUNT(*) FROM events WHERE status = 'rejected') AS total_rejected_events,
+        (SELECT COUNT(*) FROM events WHERE status = 'approved') AS total_approved_events
+    "
+);
+$summaryRow = $summaryResult ? mysqli_fetch_assoc($summaryResult) : null;
+if ($summaryRow) {
+    $totalUsers = (int) ($summaryRow['total_users'] ?? 0);
+    $totalEvents = (int) ($summaryRow['total_events'] ?? 0);
+    $totalReviews = (int) ($summaryRow['total_reviews'] ?? 0);
+    $totalPendingEvents = (int) ($summaryRow['total_pending_events'] ?? 0);
+    $totalRejectedEvents = (int) ($summaryRow['total_rejected_events'] ?? 0);
+    $totalApprovedEvents = (int) ($summaryRow['total_approved_events'] ?? 0);
+}
+
+$popularResult = mysqli_query(
+    $koneksi,
+    "
+    SELECT
+        events.id,
+        events.title,
+        CASE
+            WHEN users.id IS NULL OR users.level = 'admin' THEN 'admin'
+            ELSE users.name
+        END AS admin_name,
+        COALESCE(events.view_count, 0) AS view_count,
+        COUNT(DISTINCT event_likes.id) AS total_likes,
+        COUNT(DISTINCT event_favourites.id) AS total_favourites
+    FROM events
+    LEFT JOIN users ON users.id = events.user_id
+    LEFT JOIN event_likes ON event_likes.event_id = events.id
+    LEFT JOIN event_favourites ON event_favourites.event_id = events.id
+    GROUP BY events.id, events.title, users.id, users.name, users.level, events.view_count
+    ORDER BY view_count DESC, total_likes DESC, total_favourites DESC, events.id DESC
+    LIMIT 5
+    "
+);
+if ($popularResult) {
+    while ($row = mysqli_fetch_assoc($popularResult)) {
+        $popularEvents[] = $row;
+    }
+}
+
+$topAdminResult = mysqli_query(
+    $koneksi,
+    "
+    SELECT users.id, users.name, users.email, COUNT(events.id) AS total_events
+    FROM users
+    LEFT JOIN events ON events.user_id = users.id
+    WHERE users.level = 'user'
+    GROUP BY users.id, users.name, users.email
+    ORDER BY total_events DESC, users.name ASC
+    LIMIT 5
+    "
+);
+if ($topAdminResult) {
+    while ($row = mysqli_fetch_assoc($topAdminResult)) {
+        $topAdmins[] = $row;
+    }
+}
+
+$totalDashboardEvents = $totalEvents;
+$totalDashboardEventPages = max(1, (int) ceil($totalDashboardEvents / $dashboardEventPerPage));
+if ($dashboardEventPage > $totalDashboardEventPages) {
+    $dashboardEventPage = $totalDashboardEventPages;
+}
+$dashboardEventOffset = ($dashboardEventPage - 1) * $dashboardEventPerPage;
+$latestResult = mysqli_query(
+    $koneksi,
+    "
+    SELECT
+        events.id,
+        events.title,
+        COALESCE(categories.name, 'Tanpa kategori') AS category,
+        CASE
+            WHEN users.id IS NULL OR users.level = 'admin' THEN 'admin'
+            ELSE users.name
+        END AS admin_name,
+        events.start_date,
+        events.status,
+        (
+            SELECT event_update_requests.id
+            FROM event_update_requests
+            WHERE event_update_requests.event_id = events.id
+              AND event_update_requests.user_id = events.user_id
+              AND event_update_requests.status = 'pending'
+            ORDER BY event_update_requests.id DESC
+            LIMIT 1
+        ) AS pending_edit_request_id,
+        COALESCE(events.view_count, 0) AS view_count,
+        COUNT(DISTINCT event_likes.id) AS total_likes,
+        COUNT(DISTINCT event_favourites.id) AS total_favourites
+    FROM events
+    LEFT JOIN categories ON categories.id = events.category_id
+    LEFT JOIN users ON users.id = events.user_id
+    LEFT JOIN event_likes ON event_likes.event_id = events.id
+    LEFT JOIN event_favourites ON event_favourites.event_id = events.id
+    GROUP BY events.id, events.user_id, events.title, categories.name, users.id, users.name, users.level, events.start_date, events.status, events.view_count
+    ORDER BY events.id DESC
+    LIMIT $dashboardEventPerPage OFFSET $dashboardEventOffset
+    "
+);
+if ($latestResult) {
+    while ($row = mysqli_fetch_assoc($latestResult)) {
+        $dashboardEvents[] = $row;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -247,27 +400,19 @@ if ($stmtDashboardEvents) {
       <main class="admin-content">
         <h1 class="admin-page-title dashboard-title">Dashboard</h1>
 
-        <section class="stats-grid" aria-label="Ringkasan event">
+            <section class="stats-grid super-stats-grid" aria-label="Ringkasan user">
           <article class="stats-card">
             <span class="stats-card__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
-                <path d="M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z"></path>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             </span>
             <div>
-              <p class="stats-card__label">Total Event Favorit</p>
-              <p class="stats-card__value"><?= number_format($totalFavourites) ?></p>
-            </div>
-          </article>
-          <article class="stats-card">
-            <span class="stats-card__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
-                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
-              </svg>
-            </span>
-            <div>
-              <p class="stats-card__label">Total Event Likes</p>
-              <p class="stats-card__value"><?= number_format($totalLikes) ?></p>
+              <p class="stats-card__label">Total User</p>
+              <p class="stats-card__value"><?= number_format($totalUsers) ?></p>
             </div>
           </article>
           <article class="stats-card">
@@ -278,47 +423,112 @@ if ($stmtDashboardEvents) {
               </svg>
             </span>
             <div>
-              <p class="stats-card__label">Total Event Views</p>
-              <p class="stats-card__value"><?= number_format($totalViews) ?></p>
+              <p class="stats-card__label">Total Event</p>
+              <p class="stats-card__value"><?= number_format($totalEvents) ?></p>
+            </div>
+          </article>
+          <article class="stats-card">
+            <span class="stats-card__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="stats-card__label">Total Ulasan</p>
+              <p class="stats-card__value"><?= number_format($totalReviews) ?></p>
+            </div>
+          </article>
+          <article class="stats-card">
+            <span class="stats-card__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                <path d="M6 4.5A2.5 2.5 0 0 1 8.5 2h7A2.5 2.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="stats-card__label">Total Event Pending</p>
+              <p class="stats-card__value"><?= number_format($totalPendingEvents) ?></p>
+            </div>
+          </article>
+          <article class="stats-card">
+            <span class="stats-card__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"></path>
+              </svg>
+            </span>
+            <div>
+              <p class="stats-card__label">Total Event Reject</p>
+              <p class="stats-card__value"><?= number_format($totalRejectedEvents) ?></p>
+            </div>
+          </article>
+          <article class="stats-card">
+            <span class="stats-card__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <div>
+              <p class="stats-card__label">Total Event Approved</p>
+              <p class="stats-card__value"><?= number_format($totalApprovedEvents) ?></p>
             </div>
           </article>
         </section>
 
-        <section aria-labelledby="overview-title">
-          <h2 class="overview-title" id="overview-title">Event Overview</h2>
+        <style>.super-stats-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.super-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.super-list{display:grid;gap:14px}.super-list__item{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #eceef3}.super-list__item:last-child{border-bottom:0}.super-list__title{font-weight:700;color:var(--admin-text)}.super-list__meta{margin-top:4px;color:#8a94a6;font-size:13px}.super-list__value{font-weight:800;color:#1b2033;white-space:nowrap}@media(max-width:900px){.super-stats-grid,.super-overview-grid{grid-template-columns:1fr}}</style>
+
+        <section class="super-overview-grid" aria-labelledby="overview-title">
+          <div>
+          <h2 class="overview-title" id="overview-title">Event Terpopuler</h2>
           <div class="overview-card">
-            <div class="overview-card__header">
-              <div>
-                <h3 class="overview-card__name">Performa Event</h3>
-                <p class="overview-card__period"></p>
-              </div>
-              <div class="overview-card__metric">
-                <span class="overview-card__value"><?= number_format($likesLast30Days) ?></span>
-                <span class="overview-card__trend"><?= htmlspecialchars($trendLabel) ?></span>
-              </div>
+            <div class="super-list">
+              <?php foreach ($popularEvents as $event): ?>
+                <div class="super-list__item">
+                  <div>
+                    <div class="super-list__title"><?= htmlspecialchars($event['title']) ?></div>
+                    <div class="super-list__meta"><?= htmlspecialchars($event['admin_name']) ?> · <?= number_format((int) $event['total_likes']) ?> likes</div>
+                  </div>
+                  <div class="super-list__value"><?= number_format((int) $event['view_count']) ?> views</div>
+                </div>
+              <?php endforeach; ?>
+              <?php if (empty($popularEvents)): ?><div class="empty-state">Belum ada event.</div><?php endif; ?>
             </div>
-            <div class="chart-grid" aria-label="Grafik performa event 30 hari terakhir">
-              <canvas id="likesOverviewChart" aria-label="Grafik like event 30 hari terakhir"></canvas>
-              <div class="chart-grid__labels">
-                <span>Minggu 1</span>
-                <span>Minggu 2</span>
-                <span>Minggu 3</span>
-                <span>Minggu 4</span>
-              </div>
+          </div>
+          </div>
+          <div>
+          <h2 class="overview-title">User Event Terbanyak</h2>
+          <div class="overview-card">
+            <div class="super-list">
+              <?php foreach ($topAdmins as $admin): ?>
+                <div class="super-list__item">
+                  <div>
+                    <div class="super-list__title"><?= htmlspecialchars($admin['name']) ?></div>
+                    <div class="super-list__meta"><?= htmlspecialchars($admin['email']) ?></div>
+                  </div>
+                  <div class="super-list__value"><?= number_format((int) $admin['total_events']) ?> event</div>
+                </div>
+              <?php endforeach; ?>
+              <?php if (empty($topAdmins)): ?><div class="empty-state">Belum ada user.</div><?php endif; ?>
             </div>
+          </div>
           </div>
         </section>
 
         <section class="dashboard-table-section" aria-labelledby="dashboard-events-title">
-          <h2 class="overview-title" id="dashboard-events-title">Daftar Event</h2>
+          <h2 class="overview-title" id="dashboard-events-title">Daftar Event Terbaru</h2>
+          <form class="rows-per-page-form" method="get" action="">
+            <?php renderRowsPerPageSelect($dashboardEventPerPage); ?>
+            <button class="admin-button admin-button--secondary admin-toolbar__button" type="submit">Terapkan</button>
+          </form>
           <div class="events-table-wrap">
-            <table class="events-table dashboard-events-table">
+            <table class="events-table dashboard-events-table super-dashboard-events-table">
               <thead>
                 <tr>
                   <th class="col-number">No</th>
-                  <th class="col-title">Event Name</th>
-                  <th class="col-category">Category</th>
-                  <th class="col-date">Date</th>
+                  <th class="col-super-event">Event Name</th>
+                  <th class="col-super-category">Category</th>
+                  <th class="col-super-admin">Penginput</th>
+                  <th class="col-super-date">Date</th>
+                  <th class="col-super-category">Status</th>
                   <th class="col-metric">Views</th>
                   <th class="col-metric">Likes</th>
                   <th class="col-metric">Favorit</th>
@@ -330,11 +540,17 @@ if ($stmtDashboardEvents) {
                   <?php foreach ($dashboardEvents as $event): ?>
                     <tr>
                       <td class="events-table__muted col-number"><?= $rowNumber++ ?></td>
-                      <td class="col-title"><?= htmlspecialchars($event['title']) ?></td>
-                      <td class="col-category">
+                      <td class="col-super-event"><?= htmlspecialchars($event['title']) ?></td>
+                      <td class="col-super-category">
                         <span class="category-badge"><?= htmlspecialchars($event['category']) ?></span>
                       </td>
-                      <td class="events-table__muted col-date"><?= htmlspecialchars(date('Y-m-d', strtotime($event['start_date']))) ?></td>
+                      <td class="col-super-admin">
+                        <span class="category-badge category-badge--admin"><?= htmlspecialchars($event['admin_name']) ?></span>
+                      </td>
+                      <td class="events-table__muted col-super-date"><?= htmlspecialchars(date('Y-m-d', strtotime($event['start_date']))) ?></td>
+                      <td class="col-super-category">
+                        <span class="category-badge"><?= htmlspecialchars(formatDashboardEventStatus($event['status'] ?? '', (int) ($event['pending_edit_request_id'] ?? 0))) ?></span>
+                      </td>
                       <td class="events-table__muted col-metric"><?= number_format((int) $event['view_count']) ?></td>
                       <td class="events-table__muted col-metric"><?= number_format((int) $event['total_likes']) ?></td>
                       <td class="events-table__muted col-metric"><?= number_format((int) $event['total_favourites']) ?></td>
@@ -342,7 +558,7 @@ if ($stmtDashboardEvents) {
                   <?php endforeach; ?>
                 <?php else: ?>
                   <tr>
-                    <td class="empty-state" colspan="7">Belum ada data event.</td>
+                    <td class="empty-state" colspan="9">Belum ada data event.</td>
                   </tr>
                 <?php endif; ?>
               </tbody>

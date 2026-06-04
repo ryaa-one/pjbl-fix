@@ -28,7 +28,7 @@ if ($reviewId <= 0 || $eventId <= 0) {
 $stmtReview = mysqli_prepare(
     $koneksi,
     "
-    SELECT event_reviews.id, event_reviews.admin_reply, events.user_id AS event_owner_id
+    SELECT event_reviews.id, event_reviews.user_id AS review_user_id, event_reviews.admin_reply, event_reviews.reply_by_role, events.user_id AS event_owner_id
     FROM event_reviews
     INNER JOIN events ON events.id = event_reviews.event_id
     WHERE event_reviews.id = ?
@@ -52,7 +52,14 @@ if (! $review) {
 }
 
 if ($action === 'save_reply') {
-    if ($currentRole !== 'admin' || (int) $review['event_owner_id'] !== $currentUserId) {
+    $canManageReply = $currentRole === 'admin'
+        || (
+            $currentRole === 'user'
+            && (int) $review['event_owner_id'] === $currentUserId
+            && (int) $review['review_user_id'] !== $currentUserId
+        );
+
+    if (! $canManageReply) {
         auth_json_error(403, 'Anda tidak memiliki akses untuk membalas ulasan event ini.');
     }
 
@@ -66,10 +73,11 @@ if ($action === 'save_reply') {
         "
         UPDATE event_reviews
         INNER JOIN events ON events.id = event_reviews.event_id
-        SET event_reviews.admin_reply = ?
+        SET event_reviews.admin_reply = ?,
+            event_reviews.reply_by_role = ?
         WHERE event_reviews.id = ?
           AND events.id = ?
-          AND events.user_id = ?
+          AND (? = 'admin' OR (events.user_id = ? AND event_reviews.user_id != ?))
         "
     );
 
@@ -77,7 +85,7 @@ if ($action === 'save_reply') {
         auth_json_error(500, 'Gagal menyiapkan penyimpanan balasan.');
     }
 
-    mysqli_stmt_bind_param($stmtUpdateReply, 'siii', $adminReply, $reviewId, $eventId, $currentUserId);
+    mysqli_stmt_bind_param($stmtUpdateReply, 'ssiisii', $adminReply, $currentRole, $reviewId, $eventId, $currentRole, $currentUserId, $currentUserId);
     $updated = mysqli_stmt_execute($stmtUpdateReply);
     mysqli_stmt_close($stmtUpdateReply);
 
@@ -89,13 +97,18 @@ if ($action === 'save_reply') {
         'success' => true,
         'message' => 'Balasan ulasan berhasil disimpan.',
         'admin_reply' => $adminReply,
+        'reply_by_role' => $currentRole,
     ]);
     exit();
 }
 
 if ($action === 'delete_review') {
-    $canDeleteReview = $currentRole === 'super_admin'
-        || ($currentRole === 'admin' && (int) $review['event_owner_id'] === $currentUserId);
+    $canDeleteReview = $currentRole === 'admin'
+        || (
+            $currentRole === 'user'
+            && (int) $review['event_owner_id'] === $currentUserId
+            && (int) $review['review_user_id'] !== $currentUserId
+        );
 
     if (! $canDeleteReview) {
         auth_json_error(403, 'Anda tidak memiliki akses untuk menghapus ulasan event ini.');
@@ -103,14 +116,21 @@ if ($action === 'delete_review') {
 
     $stmtDeleteReview = mysqli_prepare(
         $koneksi,
-        "DELETE FROM event_reviews WHERE id = ? AND event_id = ? LIMIT 1"
+        "
+        DELETE event_reviews
+        FROM event_reviews
+        INNER JOIN events ON events.id = event_reviews.event_id
+        WHERE event_reviews.id = ?
+          AND events.id = ?
+          AND (? = 'admin' OR (events.user_id = ? AND event_reviews.user_id != ?))
+        "
     );
 
     if (! $stmtDeleteReview) {
         auth_json_error(500, 'Gagal menyiapkan penghapusan ulasan.');
     }
 
-    mysqli_stmt_bind_param($stmtDeleteReview, 'ii', $reviewId, $eventId);
+    mysqli_stmt_bind_param($stmtDeleteReview, 'iisii', $reviewId, $eventId, $currentRole, $currentUserId, $currentUserId);
     $deleted = mysqli_stmt_execute($stmtDeleteReview);
     $affectedRows = mysqli_stmt_affected_rows($stmtDeleteReview);
     mysqli_stmt_close($stmtDeleteReview);

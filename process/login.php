@@ -16,12 +16,18 @@ if (isset($_POST['submit-login'])) {
     session_regenerate_id(true);
     saveUserToSession($user);
 
-    if ($user['level'] == 'super_admin') {
-        header("Location: ../super%20admin/dashboard");
-    } elseif ($user['level'] == 'admin') {
+    $userLevel = auth_normalize_role((string) $user['level']);
+
+    if ($userLevel === 'admin') {
         header("Location: ../admin/dashboard");
-    } else {
+    } elseif ($userLevel === 'user') {
         header("Location: ../index.php");
+    } else {
+        session_unset();
+        session_destroy();
+        http_response_code(403);
+        echo "Level akun tidak valid. Jalankan migrasi role terlebih dahulu.";
+        exit();
     }
     exit();
 }
@@ -34,16 +40,24 @@ function checkExistingAccount($email)
 {
     global $koneksi;
 
-    $query = "SELECT * FROM users WHERE email = '$email'";
-    $exec = mysqli_query($koneksi, $query);
+    $stmt = mysqli_prepare($koneksi, "SELECT * FROM users WHERE email = ? LIMIT 1");
+    if (! $stmt) {
+        echo "Login gagal diproses";
+        exit();
+    }
 
-    if (mysqli_num_rows($exec) == 0) {
+    mysqli_stmt_bind_param($stmt, 's', $email);
+    mysqli_stmt_execute($stmt);
+    $exec = mysqli_stmt_get_result($stmt);
+    $user = $exec ? mysqli_fetch_assoc($exec) : null;
+    mysqli_stmt_close($stmt);
+
+    if (! $user) {
         echo "Email belum terdaftar";
         exit();
-    } else {
-        $user = mysqli_fetch_assoc($exec);
-        return $user;
     }
+
+    return $user;
 }
 
 function checkPassword($passwordInput, $passwordUser)

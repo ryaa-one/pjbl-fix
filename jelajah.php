@@ -1,8 +1,13 @@
 <?php
 include 'config/database.php';
+include_once 'includes/event_metrics.php';
+
+ensureEventMetricsColumns($koneksi);
 
 $activeCategoryId = isset($_GET['category']) ? (int) $_GET['category'] : 0;
 $search = trim($_GET['search'] ?? '');
+$currentPage = max(1, (int) ($_GET['page'] ?? 1));
+$eventsPerPage = 9;
 
 function formatEventDateRange(?string $startDate, ?string $endDate): string
 {
@@ -17,7 +22,7 @@ function formatEventDateRange(?string $startDate, ?string $endDate): string
     return $startDate;
 }
 
-function buildJelajahUrl(int $categoryId = 0, string $search = ''): string
+function buildJelajahUrl(int $categoryId = 0, string $search = '', int $page = 1): string
 {
     $params = [];
 
@@ -27,6 +32,10 @@ function buildJelajahUrl(int $categoryId = 0, string $search = ''): string
 
     if ($search !== '') {
         $params['search'] = $search;
+    }
+
+    if ($page > 1) {
+        $params['page'] = $page;
     }
 
     if (empty($params)) {
@@ -43,6 +52,7 @@ $resultCategories = mysqli_query(
     SELECT categories.id, categories.name, COUNT(events.id) AS total_events
     FROM categories
     INNER JOIN events ON events.category_id = categories.id
+      AND events.status = 'approved'
     GROUP BY categories.id, categories.name
     HAVING COUNT(events.id) > 0
     ORDER BY categories.name ASC
@@ -73,7 +83,7 @@ $queryEvents = "
     LEFT JOIN cities ON events.city_id = cities.id
 ";
 
-$conditions = [];
+$conditions = ["events.status = 'approved'"];
 $bindTypes = '';
 $bindValues = [];
 
@@ -98,23 +108,50 @@ if ($search !== '') {
     $bindValues[] = $searchLike;
 }
 
-if (!empty($conditions)) {
-    $queryEvents .= ' WHERE ' . implode(' AND ', $conditions);
-}
+$queryEvents .= ' WHERE ' . implode(' AND ', $conditions);
 
-$queryEvents .= " ORDER BY events.start_date ASC, events.id DESC";
+$queryTotalEvents = "
+    SELECT COUNT(*) AS total_events
+    FROM events
+    LEFT JOIN categories ON events.category_id = categories.id
+    LEFT JOIN cities ON events.city_id = cities.id
+    WHERE " . implode(' AND ', $conditions);
 
+$totalEvents = 0;
 if (!empty($bindValues)) {
-    $stmtEvents = mysqli_prepare($koneksi, $queryEvents);
-    if ($stmtEvents) {
-        mysqli_stmt_bind_param($stmtEvents, $bindTypes, ...$bindValues);
-        mysqli_stmt_execute($stmtEvents);
-        $resultEvents = mysqli_stmt_get_result($stmtEvents);
-    } else {
-        $resultEvents = false;
+    $stmtTotalEvents = mysqli_prepare($koneksi, $queryTotalEvents);
+    if ($stmtTotalEvents) {
+        mysqli_stmt_bind_param($stmtTotalEvents, $bindTypes, ...$bindValues);
+        mysqli_stmt_execute($stmtTotalEvents);
+        $resultTotalEvents = mysqli_stmt_get_result($stmtTotalEvents);
+        $totalRow = $resultTotalEvents ? mysqli_fetch_assoc($resultTotalEvents) : null;
+        $totalEvents = $totalRow ? (int) $totalRow['total_events'] : 0;
+        mysqli_stmt_close($stmtTotalEvents);
     }
 } else {
-    $resultEvents = mysqli_query($koneksi, $queryEvents);
+    $resultTotalEvents = mysqli_query($koneksi, $queryTotalEvents);
+    $totalRow = $resultTotalEvents ? mysqli_fetch_assoc($resultTotalEvents) : null;
+    $totalEvents = $totalRow ? (int) $totalRow['total_events'] : 0;
+}
+
+$totalPages = max(1, (int) ceil($totalEvents / $eventsPerPage));
+if ($currentPage > $totalPages) {
+    $currentPage = $totalPages;
+}
+
+$offset = ($currentPage - 1) * $eventsPerPage;
+$queryEvents .= " ORDER BY events.start_date ASC, events.id DESC";
+$queryEvents .= " LIMIT ? OFFSET ?";
+
+$stmtEvents = mysqli_prepare($koneksi, $queryEvents);
+if ($stmtEvents) {
+    $eventBindTypes = $bindTypes . 'ii';
+    $eventBindValues = array_merge($bindValues, [$eventsPerPage, $offset]);
+    mysqli_stmt_bind_param($stmtEvents, $eventBindTypes, ...$eventBindValues);
+    mysqli_stmt_execute($stmtEvents);
+    $resultEvents = mysqli_stmt_get_result($stmtEvents);
+} else {
+    $resultEvents = false;
 }
 
 $events = [];
@@ -178,7 +215,7 @@ if (isset($stmtEvents) && $stmtEvents) {
     </div>
 
     <div class="search-meta">
-      <?= count($events) ?> event<?= count($events) !== 1 ? 's' : '' ?> ditemukan
+      <?= $totalEvents ?> event<?= $totalEvents !== 1 ? 's' : '' ?> ditemukan
       <?php if ($search !== ''): ?>
         untuk kata kunci "<?= htmlspecialchars($search) ?>"
       <?php endif; ?>
@@ -210,6 +247,32 @@ if (isset($stmtEvents) && $stmtEvents) {
       <div class="empty-events">
         Tidak ada event yang cocok dengan filter atau pencarian ini.
       </div>
+    <?php endif; ?>
+
+    <?php if ($totalPages > 1): ?>
+      <nav class="pagination" aria-label="Pagination event">
+        <?php if ($currentPage > 1): ?>
+          <a class="pagination-link pagination-link--control" href="<?= htmlspecialchars(buildJelajahUrl($activeCategoryId, $search, $currentPage - 1)) ?>">Prev</a>
+        <?php else: ?>
+          <span class="pagination-link pagination-link--control is-disabled">Prev</span>
+        <?php endif; ?>
+
+        <div class="pagination-pages">
+          <?php for ($page = 1; $page <= $totalPages; $page++): ?>
+            <?php if ($page === $currentPage): ?>
+              <span class="pagination-link is-active" aria-current="page"><?= $page ?></span>
+            <?php else: ?>
+              <a class="pagination-link" href="<?= htmlspecialchars(buildJelajahUrl($activeCategoryId, $search, $page)) ?>"><?= $page ?></a>
+            <?php endif; ?>
+          <?php endfor; ?>
+        </div>
+
+        <?php if ($currentPage < $totalPages): ?>
+          <a class="pagination-link pagination-link--control" href="<?= htmlspecialchars(buildJelajahUrl($activeCategoryId, $search, $currentPage + 1)) ?>">Next</a>
+        <?php else: ?>
+          <span class="pagination-link pagination-link--control is-disabled">Next</span>
+        <?php endif; ?>
+      </nav>
     <?php endif; ?>
 
     <?php include("templates/footer.php"); ?>

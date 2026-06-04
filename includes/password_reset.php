@@ -2,6 +2,8 @@
 
 use PHPMailer\PHPMailer\PHPMailer;
 
+require_once __DIR__ . '/env.php';
+
 function getPasswordResetByToken($token)
 {
     global $koneksi;
@@ -48,6 +50,9 @@ function sendPasswordResetEmail($recipientEmail, $recipientName, $token)
     require_once __DIR__ . '/../vendor/autoload.php';
 
     $smtp = require __DIR__ . '/../config/smtp.php';
+    if ($smtp['username'] === '' || $smtp['password'] === '' || $smtp['from_email'] === '') {
+        throw new RuntimeException('Konfigurasi SMTP belum lengkap.');
+    }
     $resetUrl = (getenv('APP_URL') ?: 'http://localhost/PJBL_NEW')
         . '/reset-password.php?token=' . urlencode($token);
 

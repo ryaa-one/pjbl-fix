@@ -1,4 +1,7 @@
 .antigravitycli/
 .codex/
 config/smtp.php
+.env
+.env.*
+!.env.example
 .docs/

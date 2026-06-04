@@ -81,6 +81,35 @@ body {
   gap: 40px;
   font-size: 26px;
   padding-top: 50px;
+  flex-wrap: wrap;
+}
+
+.kategori-event li {
+  display: flex;
+}
+
+.kategori-event a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 4px 6px;
+  border-bottom: 2px solid rgba(151, 49, 49, 0.28);
+  color: #973131;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.kategori-event a:hover,
+.kategori-event a:focus-visible {
+  border-color: #b31919;
+  color: #b31919;
+  outline: none;
 }
 
 .eventakandatang {
@@ -179,13 +208,12 @@ body {
 }
 
 .frame-96--events-1 {
-  height: 420px;
-  min-height: 420px;
+  height: 450px;
+  min-height: 450px;
 }
-
 .frame-96--events-2 {
-  height: 670px;
-  min-height: 670px;
+  height: 720px;
+  min-height: 720px;
 }
 
 .populer--events-0 {
@@ -193,11 +221,10 @@ body {
 }
 
 .populer--events-1 {
-  height: 420px;
+  height: 450px;
 }
-
 .populer--events-2 {
-  height: 670px;
+  height: 720px;
 }
 
 .populer--events-0 .line-vertical,
@@ -206,19 +233,16 @@ body {
 }
 
 .populer--events-1 .line-vertical {
-  height: 230px;
+  height: 310px;
 }
-
 .populer--events-1 .line-bottom {
-  top: 405px;
+  top: 430px;
 }
-
 .populer--events-2 .line-vertical {
-  height: 500px;
+  height: 580px;
 }
-
 .populer--events-2 .line-bottom {
-  top: 655px;
+  top: 700px;
 }
 
 .event-title {
@@ -230,6 +254,14 @@ body {
   line-height: normal;
   position: absolute;
   text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 0.2s ease;
+}
+
+.event-title:hover,
+.event-title:focus-visible {
+  color: #6f3f1f;
 }
 
 .event-line {
@@ -278,158 +310,215 @@ body {
   transform: translateX(-50%);
 }
 
-/* Event 1 - Tari Kecak */
+/* ======================================
+   POPULER SECTION - LAYOUT BARU
+   ====================================== */
+
+.frame-96 {
+  margin: 0;
+  min-height: 980px;
+  height: 980px;
+  min-width: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.populer {
+  height: 980px;
+  left: calc(50% - 560px);
+  position: relative;
+  width: 1120px;
+}
+
+/* Vertical divider line */
+.line-vertical {
+  background-color: var(--black);
+  height: 850px;
+  left: 50%;
+  transform: translateX(-50%);
+  position: absolute;
+  top: 50px;
+  width: 1px;
+}
+
+/* Bottom line */
+.line-bottom {
+  background-color: var(--black);
+  height: 1px;
+  left: calc(50% - 430px);
+  position: absolute;
+  top: 960px;
+  width: 860px;
+}
+
+/* ── Event 1 ── diamonds kiri, teks kanan */
 .box1 {
-  left: 45px;
+  left: 40px;
   top: 70px;
-  width: 250px;
-  height: 250px;
+  width: 240px;
+  height: 240px;
 }
 
 .box2 {
-  left: 400px;
-  top: 135px;
-  width: 160px;
-  height: 160px;
+  left: 240px;
+  top: 155px;
+  width: 150px;
+  height: 150px;
 }
 
 .box3 {
-  left: 200px;
-  top: 211px;
-  width: 140px;
-  height: 140px;
+  left: 110px;
+  top: 245px;
+  width: 120px;
+  height: 120px;
 }
 
 .event1-title {
-  left: 733px;
-  top: 119px;
-  white-space: nowrap;
+  left: 595px;
+  top: 108px;
+  width: 460px;
+  text-align: center;
+  text-decoration: underline;
 }
 
 .event1-line {
-  left: 724px;
-  top: 142px;
-  width: 181px;
+  display: none;
 }
 
 .event1-desc {
-  left: 645px;
-  top: 151px;
-  width: 331px;
+  left: 580px;
+  top: 138px;
+  width: 470px;
+  text-align: center;
+  line-height: 1.65;
 }
 
 .stop1 {
-  left: 634px;
+  left: 50%;
   top: 185px;
 }
 
 .event1-detail {
-  left: 656px;
-  top: 264px;
-  width: 325px;
+  left: 580px;
+  top: 282px;
+  width: 470px;
+  text-align: center;
+  line-height: 1.7;
 }
 
 .stop2 {
-  left: 634px;
-  top: 289px;
+  left: 50%;
+  top: 300px;
 }
 
-/* Event 2 - Sawahlunto */
+/* ── Event 2 ── teks kiri, diamonds kanan */
 .box4 {
-  left: 960px;
-  top: 291px;
-  width: 250px;
-  height: 250px;
+  right: 40px;
+  left: auto;
+  top: 390px;
+  width: 240px;
+  height: 240px;
 }
 
 .box5 {
-  left: 730px;
-  top: 393px;
-  width: 160px;
-  height: 160px;
+  right: 230px;
+  left: auto;
+  top: 473px;
+  width: 150px;
+  height: 150px;
 }
 
 .box6 {
-  left: 931px;
-  top: 458px;
-  width: 140px;
-  height: 140px;
+  right: 105px;
+  left: auto;
+  top: 560px;
+  width: 120px;
+  height: 120px;
 }
 
 .event2-title {
-  left: 312px;
-  top: 370px;
-  width: 272px;
+  left: 60px;
+  top: 395px;
+  width: 440px;
+  text-align: center;
 }
 
 .event2-line {
-  left: 320px;
-  top: 420px;
-  width: 260px;
+  display: none;
 }
 
 .event2-desc {
-  left: 282px;
-  top: 429px;
-  width: 331px;
+  left: 50px;
+  top: 440px;
+  width: 460px;
+  text-align: center;
+  line-height: 1.65;
 }
 
 .stop3 {
-  left: 634px;
-  top: 444px;
+  left: 50%;
+  top: 480px;
 }
 
 .event2-detail {
-  left: 282px;
-  top: 519px;
-  width: 325px;
+  left: 50px;
+  top: 572px;
+  width: 460px;
+  text-align: center;
+  line-height: 1.7;
 }
 
 .stop4 {
-  left: 634px;
-  top: 537px;
+  left: 50%;
+  top: 590px;
 }
 
-/* Event 3 - Art Jog */
+/* ── Event 3 ── diamond kecil kiri bawah, teks kanan bawah */
 .box7 {
-  left: 339px;
-  top: 616px;
-  width: 220px;
-  height: 220px;
+  left: 175px;
+  top: 705px;
+  width: 190px;
+  height: 190px;
 }
 
 .event3-title {
-  left: 786px;
-  top: 615px;
-  white-space: nowrap;
+  left: 595px;
+  top: 700px;
+  width: 460px;
+  text-align: center;
+  text-decoration: underline;
+  white-space: normal;
 }
 
 .event3-line {
-  left: 781px;
-  top: 640px;
-  width: 83px;
+  display: none;
 }
 
 .event3-desc {
-  left: 660px;
-  top: 650px;
-  width: 331px;
+  left: 580px;
+  top: 730px;
+  width: 470px;
+  text-align: center;
+  line-height: 1.65;
 }
 
 .stop5 {
-  left: 634px;
-  top: 683px;
+  left: 50%;
+  top: 775px;
 }
 
 .event3-detail {
-  left: 662px;
-  top: 763px;
-  width: 325px;
+  left: 580px;
+  top: 866px;
+  width: 470px;
+  text-align: center;
+  line-height: 1.7;
 }
 
 .stop6 {
-  left: 634px;
-  top: 777px;
+  left: 50%;
+  top: 890px;
 }
 
 /* Tulisan Kategori */
@@ -473,7 +562,9 @@ body {
   cursor: pointer;
   color: inherit;
   text-decoration: none;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -548,6 +639,12 @@ body {
   .kategori-event ul {
     font-size: 22px;
     gap: 30px;
+    justify-content: center;
+  }
+
+  .kategori-event a {
+    min-height: 38px;
+    padding: 0 4px 6px;
   }
 
   /* Populer Section - Scale Down */
@@ -622,9 +719,21 @@ body {
 
   .kategori-event ul {
     flex-direction: column;
+    align-items: stretch;
     gap: 15px;
     font-size: 18px;
     padding-top: 30px;
+  }
+
+  .kategori-event li {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .kategori-event a {
+    width: fit-content;
+    min-height: 36px;
+    padding: 0 4px 5px;
   }
 
   /* Populer Section - Mobile Layout */
@@ -826,6 +935,11 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     gap: 18px 28px;
+  }
+
+  .kategori-event a {
+    min-height: 38px;
+    padding: 0 4px 6px;
   }
 
   .frame-96 {

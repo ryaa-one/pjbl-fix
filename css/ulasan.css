@@ -1,11 +1,15 @@
 @import url("event.css");
 
 .reviews-toolbar {
-  grid-template-columns: minmax(240px, 1.8fr) minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(240px, 1.8fr) minmax(180px, 1fr) minmax(0, 1fr) auto;
 }
 
 .reviews-table {
   min-width: 1180px;
+}
+
+.reviews-table--owner {
+  min-width: 1320px;
 }
 
 .reviews-table th {
@@ -43,19 +47,31 @@
   letter-spacing: 1px;
 }
 
+.review-rating__value,
+.review-date__time {
+  display: block;
+  margin-top: 5px;
+  color: #98a2b3;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
 .reply-form {
   display: grid;
   gap: 10px;
-  min-width: 220px;
+  min-width: 190px;
 }
 
 .reply-field {
   width: 100%;
-  min-height: 82px;
+  min-height: 74px;
   padding: 10px 12px;
   border-radius: 12px;
   resize: vertical;
   line-height: 1.45;
+  font-family: inherit;
+  font-size: 13px;
 }
 
 .reply-actions {
@@ -70,32 +86,47 @@
   font-size: 13px;
 }
 
+.reply-save-button {
+  min-height: 36px;
+  padding: 0 13px;
+  font-size: 12px;
+}
+
+.col-review-number {
+  width: 54px;
+  text-align: center;
+}
+
 .col-review-event {
-  width: 16%;
+  width: 150px;
 }
 
 .col-review-user {
-  width: 14%;
+  width: 130px;
 }
 
 .col-review-rating {
-  width: 96px;
+  width: 104px;
 }
 
 .col-review-text {
-  width: 22%;
+  width: 210px;
+}
+
+.col-review-date {
+  width: 104px;
 }
 
 .col-review-reply {
-  width: 24%;
+  width: 190px;
 }
 
 .col-review-actions {
-  width: 126px;
+  width: 230px;
 }
 
-.col-review-actions .table-actions {
-  align-items: flex-start;
+.reviews-table--owner td {
+  padding: 15px 14px;
 }
 
 @media (max-width: 760px) {
@@ -107,14 +138,22 @@
     min-width: 1040px;
   }
 
+  .reviews-table--owner {
+    min-width: 1240px;
+  }
+
   .reply-form {
-    min-width: 190px;
+    min-width: 170px;
   }
 }
 
 @media (max-width: 600px) {
   .reviews-table {
     min-width: 980px;
+  }
+
+  .reviews-table--owner {
+    min-width: 1180px;
   }
 
   .reply-actions {

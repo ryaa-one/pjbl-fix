@@ -9,12 +9,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 28px;
   margin-bottom: 22px;
+  min-width: 0;
 }
 
 .stats-card {
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
   min-height: 94px;
   padding: 18px 22px;
   background: #ffffff;
@@ -147,10 +149,30 @@
 }
 
 .dashboard-table-section {
+  min-width: 0;
+  max-width: 100%;
   margin-top: 28px;
 }
 
+.rows-per-page-form {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.rows-per-page-select {
+  min-width: 132px;
+}
+
+.admin-toolbar__button {
+  min-height: 44px;
+  padding: 0 18px;
+}
+
 .events-table-wrap {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: 16px;
@@ -348,6 +370,10 @@
 
   .admin-pagination {
     justify-content: center;
+  }
+
+  .rows-per-page-form {
+    flex-direction: column;
   }
 }
 

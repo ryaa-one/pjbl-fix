@@ -4,12 +4,21 @@
   margin-bottom: 26px;
 }
 
+.events-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .admin-toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1.8fr) repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(240px, 1.8fr) repeat(4, minmax(0, 1fr)) auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 26px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .admin-toolbar .admin-search {
@@ -25,11 +34,24 @@
   padding: 0 18px;
 }
 
+.rows-per-page-form {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.rows-per-page-select {
+  min-width: 132px;
+}
+
 .add-event-button {
   min-width: 132px;
 }
 
 .events-table-wrap {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: 16px;
@@ -75,6 +97,7 @@
 
 .events-table {
   width: 100%;
+  max-width: none;
   border-collapse: collapse;
   font-size: 14px;
   table-layout: fixed;
@@ -164,6 +187,45 @@
   color: #98a2b3;
 }
 
+.pending-edit-summary {
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.pending-edit-summary__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pending-edit-summary__header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pending-edit-summary__table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #eceef3;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pending-edit-summary__table {
+  min-width: 760px;
+}
+
+.pending-edit-summary__table th,
+.pending-edit-summary__table td {
+  vertical-align: middle;
+}
+
 .col-number {
   width: 64px;
   text-align: center;
@@ -190,9 +252,18 @@
 }
 
 @media (max-width: 760px) {
+  .events-header__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
   .admin-toolbar {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .rows-per-page-form {
+    flex-direction: column;
   }
 
   .events-table {

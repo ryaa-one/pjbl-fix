@@ -1,3 +1,3 @@
-<FilesMatch "^(category|checkAuth|getAdmin|getEvent|getSuperAdminEvent|getSuperAdminUsers|getUser)\.php$">
+<FilesMatch "^(category|checkAuth|getAdmin|getAdminEvent|getAdminUsers|getEvent|getUser)\.php$">
     Require all denied
 </FilesMatch>
